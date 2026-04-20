@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572074352766",
+    "project_id": "adhera-f2dd7",
+    "storage_bucket": "adhera-f2dd7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572074352766:android:f05b13e3ac377fec28382f",
+        "android_client_info": {
+          "package_name": "com.gpproject.adhera"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBaX78O5uCXJ-d-3ezu6-2B6RvYZYpv64s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.gpproject.adhera" />
+                  <option name="mobileSdkAppId" value="1:572074352766:android:f05b13e3ac377fec28382f" />
+                  <option name="projectId" value="adhera-f2dd7" />
+                  <option name="projectNumber" value="572074352766" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

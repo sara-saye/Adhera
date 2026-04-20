@@ -172,7 +172,7 @@ fun OnboardingScreen3(
                     style = MaterialTheme.typography.headlineMedium,
                     color = NavyPrimary,
 
-                )
+                    )
             }
 
             Spacer(Modifier.height(16.dp))
@@ -290,7 +290,9 @@ fun JourneyPath() {
         label = ""
     )
 
-    Box(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .height(180.dp)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val path = Path()
             path.moveTo(40f, size.height * 0.4f)
@@ -303,7 +305,10 @@ fun JourneyPath() {
             drawPath(
                 path = path,
                 color = Color(0xFFD6C8E6),
-                style = Stroke(width = 5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 15f)))
+                style = Stroke(
+                    width = 5f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 15f))
+                )
             )
 
             val measure = android.graphics.PathMeasure(path.asAndroidPath(), false)
@@ -318,11 +323,17 @@ fun JourneyPath() {
             Icons.Default.DirectionsRun,
             contentDescription = null,
             tint = Color.White,
-            modifier = Modifier.offset(150.dp, 70.dp).size(18.dp)
+            modifier = Modifier
+                .offset(150.dp, 70.dp)
+                .size(18.dp)
         )
 
         JourneyNode(Icons.Default.Lightbulb, "Detection", modifier = Modifier.offset(0.dp, 60.dp))
-        JourneyNode(Icons.Default.MedicalServices, "Diagnosis", modifier = Modifier.offset(90.dp, 20.dp))
+        JourneyNode(
+            Icons.Default.MedicalServices,
+            "Diagnosis",
+            modifier = Modifier.offset(90.dp, 20.dp)
+        )
         JourneyNode(Icons.Default.Schedule, "Routine", modifier = Modifier.offset(200.dp, 45.dp))
         JourneyNode(Icons.Default.Check, "Progress", modifier = Modifier.offset(260.dp, 70.dp))
     }
@@ -476,7 +487,9 @@ fun RoleCard(
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
