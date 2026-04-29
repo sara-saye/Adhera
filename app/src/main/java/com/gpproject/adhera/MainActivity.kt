@@ -8,18 +8,34 @@ import androidx.activity.viewModels
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.gpproject.adhera.data.repository.TaskRepository
 import com.gpproject.adhera.ui.navigation.AdheraNavGraph
 import com.gpproject.adhera.ui.theme.AdheraTheme
 import com.gpproject.adhera.viewmodels.AuthViewModel
+import com.gpproject.adhera.viewmodels.TaskViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    // الـ ViewModels الأساسية للأبلكيشن
+    // 1. تعريف الـ Repository
+    private val taskRepository = TaskRepository()
+
+    // 2. تعريف الـ ViewModels
     private val authViewModel: AuthViewModel by viewModels()
+
+    // تعريف الـ TaskViewModel مع تمرير الـ Repository له (عشان الـ Save يشتغل)
+    private val taskViewModel: TaskViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return TaskViewModel(taskRepository) as T
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,13 +43,14 @@ class MainActivity : ComponentActivity() {
         val credentialManager = CredentialManager.create(this)
 
         setContent {
-            com.gpproject.adhera.ui.theme.AdheraTheme { // استخدمي المسار الكامل هنا للآمان
-                AdheraNavGraph()
+            AdheraTheme {
+                // بنمرر الـ taskViewModel للـ NavGraph عشان يوزعه على السكرينات
+                AdheraNavGraph(taskViewModel = taskViewModel)
             }
         }
     }
 
-    // دالة الـ Google Sign-in (خليها موجودة عشان لما ترجعي لخطوة الـ Auth)
+    // دالة الـ Google Sign-in (تسيبيها زي ما هي)
     private fun triggerGoogleSignIn(credentialManager: CredentialManager) {
         val googleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)

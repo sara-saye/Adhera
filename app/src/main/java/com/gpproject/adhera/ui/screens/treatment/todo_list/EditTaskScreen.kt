@@ -1,173 +1,217 @@
 package com.gpproject.adhera.ui.screens.treatment.todo_list
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.gpproject.adhera.ui.components.HeaderWithBack
-import com.gpproject.adhera.ui.components.PrimaryButton
-import com.gpproject.adhera.ui.components.SecondaryButton
-import com.gpproject.adhera.ui.components.adheraScreenPadding
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import com.gpproject.adhera.ui.theme.*
 import com.gpproject.adhera.viewmodels.TaskViewModel
 
 @Composable
 fun EditTaskScreen(
-    taskId: String,
-    viewModel: TaskViewModel = viewModel(),
-    onBack: () -> Unit
+    taskId: String = "1",
+    taskTitleDefault: String = "Hello Deep Work",
+    hasSubTasks: Boolean = true, // باراميتر للتحكم في ظهور الـ AI والـ Sub-tasks
+    onBack: () -> Unit,
+    onSettings: () -> Unit = {},
+    viewModel: TaskViewModel
 ) {
-    // جلب المهمة من الـ ViewModel باستخدام الـ ID
-    val task = remember { viewModel.getTaskById(taskId) }
+    var title by remember { mutableStateOf(taskTitleDefault) }
+    var description by remember { mutableStateOf("Focusing on the documentation for the new Adhera UI kit, ensuring all components follow accessibility guidelines...") }
+    var reminderEnabled by remember { mutableStateOf(true) }
 
-    // State محلي للبيانات القابلة للتعديل
-    var title by remember { mutableStateOf(task?.title ?: "") }
-    var description by remember { mutableStateOf(task?.description ?: "") }
-    var reminderEnabled by remember { mutableStateOf(task?.reminderEnabled ?: false) }
-
-    // تحميل الـ Sub-tasks في قائمة الـ ViewModel عند فتح الشاشة
-    LaunchedEffect(key1 = taskId) {
-        task?.let { viewModel.loadSubTasksForEditing(it.subTasks) }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .adheraScreenPadding()
-            .verticalScroll(rememberScrollState())
-    ) {
-        // الهيدر اللي بعتيه في الملفات
-        HeaderWithBack(
-            title = "Edit Task",
-            onBack = onBack
-        )
-
-        Column(modifier = Modifier.padding(16.dp)) {
-            // 1. تعديل العنوان
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Task Title") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = NavyPrimary)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 2. تعديل الوصف + زر الـ AI
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2
-            )
-
-            if (description.length > 20) {
-                TextButton(
-                    onClick = { viewModel.regenerateSubTasks(description) },
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Regenerate with Gemini", color = NavySecondary)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 3. قسم الـ Sub-tasks (إدارة الخطوات)
-            Text(
-                text = "Sub-tasks Management",
-                style = MaterialTheme.typography.titleMedium,
-                color = NavyPrimary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // عرض الخطوات الموجودة حالياً في الـ ViewModel
-            viewModel.editingSubTasks.forEach { subTask ->
-                SubTaskEditItem(
-                    title = subTask.title,
-                    onNameChange = { newName -> viewModel.updateSubTaskName(subTask.id, newName) },
-                    onDelete = { viewModel.removeSubTask(subTask.id) }
-                )
-            }
-
-            // 4. زر إضافة خطوة يدوية (من ملف Buttons.kt)
-            SecondaryButton(
-                text = "+ Add New Step",
-                onClick = { viewModel.addNewSubTask() },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-            )
-
-            Divider(modifier = Modifier.padding(vertical = 16.dp), color = DividerColor)
-
-            // 5. سويتش المنبه (Reminder Logic)
+    Scaffold(
+        topBar = {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text("Enable Reminders", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                    Text("Alert 5 mins before start", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBackIosNew, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(22.dp))
                 }
-                Switch(
-                    checked = reminderEnabled,
-                    onCheckedChange = { reminderEnabled = it },
-                    colors = SwitchDefaults.colors(checkedThumbColor = NavyPrimary)
+                Text(
+                    text = "Edit Task",
+                    fontSize = 20.sp,
+                    color = NavyPrimary,
+                    fontWeight = FontWeight.ExtraBold
                 )
+                IconButton(onClick = onSettings) {
+                    Icon(Icons.Default.Settings, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(26.dp))
+                }
+            }
+        },
+        containerColor = Color(0xFFF8F9FB)
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // كارت العنوان
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                color = Color.White
+            ) {
+                Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(modifier = Modifier.size(50.dp), color = Color(0xFFEFF3F8), shape = RoundedCornerShape(12.dp)) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = NavyPrimary, modifier = Modifier.padding(12.dp))
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column {
+                        Text(text = title, fontWeight = FontWeight.Bold, color = NavyPrimary, fontSize = 18.sp)
+                        Text(text = "Pre-filled from your schedule", color = Color.Gray, fontSize = 13.sp)
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            // خانات الوقت والتاريخ
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                EditFieldItem(label = "START TIME", value = "09:00 AM", icon = Icons.Default.AccessTime, modifier = Modifier.weight(1f))
+                EditFieldItem(label = "END DATE", value = "Oct 24, 2023", icon = Icons.Default.CalendarToday, modifier = Modifier.weight(1f))
+            }
 
-            // 6. زر الحفظ النهائي (PrimaryButton)
-            PrimaryButton(
-                text = "Update Changes",
-                onClick = {
-                    viewModel.updateTask(
-                        taskId = taskId,
-                        newTitle = title,
-                        newDescription = description,
-                        isReminderEnabled = reminderEnabled
-                    )
-                    onBack()
+            EditFieldItem(label = "FOCUS DURATION", value = "2.5 Hours", icon = Icons.Default.Timer, modifier = Modifier.fillMaxWidth())
+
+            // قسم الوصف - زرار الـ AI يظهر بشرط
+            Column {
+                Text("DESCRIPTION", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                Spacer(Modifier.height(8.dp))
+                Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.White) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = description, fontSize = 14.sp, color = NavyPrimary.copy(alpha = 0.8f), lineHeight = 22.sp)
+
+                        if (hasSubTasks) { // إخفاء الزرار لو التاسك بسيطة
+                            Spacer(Modifier.height(12.dp))
+                            Button(
+                                onClick = {},
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F4F9)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.AutoAwesome, null, tint = NavyPrimary, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Re-generate with AI", color = NavyPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
-            )
+            }
+
+            // المنبه
+            Column {
+                Text("REMINDER", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                Spacer(Modifier.height(8.dp))
+                Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.White) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.NotificationsNone, null, tint = NavyPrimary)
+                        Spacer(Modifier.width(12.dp))
+                        Text("5-minute before alert", modifier = Modifier.weight(1f), fontSize = 14.sp, color = NavyPrimary)
+                        Switch(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
+                    }
+                }
+            }
+
+            // قسم المهام الفرعية يظهر بشرط
+            if (hasSubTasks) {
+                Column {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("SUB-TASKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                        TextButton(onClick = {}) {
+                            Icon(Icons.Default.AddCircleOutline, null, modifier = Modifier.size(16.dp), tint = NavyPrimary)
+                            Spacer(Modifier.width(4.dp))
+                            Text("Add New Step", color = NavyPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    listOf("Review existing UI audit logs", "Draft typography hierarchy").forEachIndexed { index, sub ->
+                        SubTaskItem(index + 1, sub)
+                        Spacer(Modifier.height(10.dp))
+                    }
+                }
+            }
+
+            // أزرار الحفظ والمسح
+            Button(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+
+            TextButton(onClick = {}, modifier = Modifier.fillMaxWidth()) {
+                Text("Delete Task", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-fun SubTaskEditItem(
-    title: String,
-    onNameChange: (String) -> Unit,
-    onDelete: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OutlinedTextField(
-            value = title,
-            onValueChange = onNameChange,
-            modifier = Modifier.weight(1f),
-            textStyle = MaterialTheme.typography.bodyMedium,
-            singleLine = true
-        )
-        IconButton(onClick = onDelete) {
-            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = ErrorColor)
+fun EditFieldItem(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.White) {
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
+                Icon(icon, null, modifier = Modifier.size(20.dp), tint = Color.LightGray)
+            }
         }
     }
 }
+
+@Composable
+fun SubTaskItem(number: Int, text: String) {
+    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.White) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(28.dp).background(NavyPrimary, CircleShape), contentAlignment = Alignment.Center) {
+                Text("$number", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(text, modifier = Modifier.weight(1f), fontSize = 14.sp, color = NavyPrimary)
+            Icon(Icons.Default.DeleteOutline, null, tint = Color(0xFFE57373), modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+// --- Previews ---
+
+//@Preview(name = "Edit Task - With AI & Subtasks", showBackground = true, device = "spec:width=360dp,height=1200dp")
+//@Composable
+//fun EditTaskPreviewWithSteps() {
+//    AdheraTheme {
+//        EditTaskScreen(onBack = {},)
+//    }
+//}
+//
+//@Preview(name = "Edit Task - Simple (No AI/Steps)", showBackground = true, device = "spec:width=360dp,height=900dp")
+//@Composable
+//fun EditTaskPreviewSimple() {
+//    AdheraTheme {
+//        // تمرير false لإخفاء زر الـ AI والـ Sub-tasks
+//        EditTaskScreen(taskTitleDefault = "Morning Deep Work", hasSubTasks = false, onBack = {},)
+//    }
+//}
