@@ -89,18 +89,6 @@ fun SignupScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        DividerText()
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        GoogleButton(
-            onClick = {
-
-            }
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
         Row {
 
             Text(
