@@ -1,26 +1,45 @@
 package com.gpproject.adhera.data.model
 
-// data/model/UserModels.kt
-sealed class UserRole {
-    object Doctor : UserRole()
-    object Adult : UserRole()
-    object Parent : UserRole()
+sealed class UserRole(val value: String) {
+
+    data object Doctor : UserRole("Doctor")
+
+    data object AdultChild : UserRole("Adult/Child")
+
+    data object Parent : UserRole("Parent")
 }
 
-// data/model/UserModels.kt
+enum class Gender {
+    MALE,
+    FEMALE
+}
 
 data class UserProfile(
+
     val uid: String = "",
+
     val role: String = "",
+
     val email: String = "",
-    val name: String? = null,        // للدكتور
-    val nickname: String? = null,    // للطفل/البالغ
-    val gender: String? = null,
-    val age: String? = null,
+
+    // Doctor
+    val name: String? = null,
+
+    // Adult / Child
+    val nickname: String? = null,
+
+    val gender: Gender? = null,
+
+    val age: Int? = null,
+
+    // Parent
     val childWillUseThisPhone: Boolean = true,
+
     val linkParentPhone: Boolean = false,
 
-    // إضافات المشروع الخاصة بكِ
-    val patientIds: List<String> = emptyList(), // للدكتور فقط
-    val detectionResults: Map<String, Any> = emptyMap() // نتائج الـ 5 موديلات
+    // Doctor
+    val patientIds: List<String> = emptyList(),
+
+    // Detection
+    val detectionResults: Map<String, Any> = emptyMap()
 )
