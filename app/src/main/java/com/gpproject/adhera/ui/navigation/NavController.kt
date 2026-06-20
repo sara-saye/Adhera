@@ -1,21 +1,21 @@
 package com.gpproject.adhera.ui.navigation
-
-
-import androidx.compose.runtime.*
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.gpproject.adhera.ui.screens.detection.*
-import com.gpproject.adhera.ui.screens.home.HomeHubScreen
-import com.gpproject.adhera.ui.screens.onboarding.*
-import com.gpproject.adhera.ui.screens.auth.*
-import com.gpproject.adhera.ui.screens.*   // لو عايزة تستوردي كل حاجة (اختياري)
-import com.gpproject.adhera.ui.screens.reports.DetectionCompleteScreen
-import com.gpproject.adhera.ui.screens.reports.DetectionResultsScreen
-import com.gpproject.adhera.ui.screens.splash.AdheraAnimatedSplash
-import com.gpproject.adhera.R
-@Composable
-fun AdheraNavGraph() {
+//
+//
+//import androidx.compose.runtime.*
+//import androidx.navigation.compose.NavHost
+//import androidx.navigation.compose.composable
+//import androidx.navigation.compose.rememberNavController
+//import com.gpproject.adhera.ui.screens.detection.*
+//import com.gpproject.adhera.ui.screens.home.HomeHubScreen
+//import com.gpproject.adhera.ui.screens.onboarding.*
+//import com.gpproject.adhera.ui.screens.auth.*
+//import com.gpproject.adhera.ui.screens.*   // لو عايزة تستوردي كل حاجة (اختياري)
+//import com.gpproject.adhera.ui.screens.reports.DetectionCompleteScreen
+//import com.gpproject.adhera.ui.screens.reports.DetectionResultsScreen
+//import com.gpproject.adhera.ui.screens.splash.AdheraAnimatedSplash
+//import com.gpproject.adhera.R
+//@Composable
+//fun AdheraNavGraph() {
 //    val navController = rememberNavController()
 //
 //    // Splash Screen
@@ -167,4 +167,64 @@ fun AdheraNavGraph() {
 //            }
 //        }
 //    }
+//}
+
+
+//nourhan code 33333333333333333333333333333
+
+
+import androidx.compose.runtime.*
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.gpproject.adhera.ui.screens.home.HomeHubScreen
+import com.gpproject.adhera.ui.screens.treatment.todo_list.*
+import com.gpproject.adhera.viewmodels.TaskViewModel
+
+@Composable
+fun AdheraNavGraph(taskViewModel: TaskViewModel) {
+    val navController = rememberNavController()
+
+    NavHost(navController = navController, startDestination = "home_hub") {
+        composable("home_hub") {
+            HomeHubScreen(onNavigateToTodo = { navController.navigate("todo_list") })
+        }
+
+        composable("todo_list") {
+            TodoListScreen(
+                viewModel = taskViewModel,
+                onNavigateToCreate = { navController.navigate("create_task") },
+                onNavigateToEdit = { id -> navController.navigate("edit_task/$id") },
+                onNavigateToDetails = { id -> navController.navigate("task_details/$id") },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("create_task") {
+            CreateTaskScreen(viewModel = taskViewModel, onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = "task_details/{taskId}",
+            arguments = listOf(navArgument("taskId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId") ?: ""
+            TaskDetailsScreen(
+                taskId = taskId,
+                viewModel = taskViewModel,
+                onBack = { navController.popBackStack() },
+                onEdit = { id -> navController.navigate("edit_task/$id") }
+            )
+        }
+
+        composable(
+            route = "edit_task/{taskId}",
+            arguments = listOf(navArgument("taskId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId") ?: ""
+            EditTaskScreen(taskId = taskId, viewModel = taskViewModel, onBack = { navController.popBackStack() })
+        }
+    }
 }
