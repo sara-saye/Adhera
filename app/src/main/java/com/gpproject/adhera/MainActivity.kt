@@ -5,36 +5,38 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.gpproject.adhera.data.repository.TaskRepository
-import com.gpproject.adhera.ui.navigation.AdheraNavGraph
+import com.gpproject.adhera.data.local.todo.AppDatabase // تم استيراد الداتابيز الحقيقية بتاعتك
+import com.gpproject.adhera.data.repository.TaskRepositoryImpl // اتأكدي من اسم الكلاس ده عندك
+import com.gpproject.adhera.data.usecase.*
+import com.gpproject.adhera.ui.navigation.TaskNavGraph
 import com.gpproject.adhera.ui.theme.AdheraTheme
 import com.gpproject.adhera.viewmodels.AuthViewModel
 import com.gpproject.adhera.viewmodels.TaskViewModel
-import kotlinx.coroutines.launch
+import com.gpproject.adhera.viewmodels.TaskViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
-    // 1. تعريف الـ Repository
-    private val taskRepository = TaskRepository()
-
-    // 2. تعريف الـ ViewModels
     private val authViewModel: AuthViewModel by viewModels()
 
-    // تعريف الـ TaskViewModel مع تمرير الـ Repository له (عشان الـ Save يشتغل)
+    // بناء الـ TaskViewModel يدوياً بـ استخدام الفاكتوري والـ AppDatabase الحقيقية بتاعتك
     private val taskViewModel: TaskViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return TaskViewModel(taskRepository) as T
-            }
-        }
+        // 1. جلب الـ Dao من الـ AppDatabase الحقيقية
+        val database = AppDatabase.getDatabase(applicationContext)
+        val taskDao = database.taskDao
+
+        // 2. عمل الـ Repository اللي بيكلم الـ Dao
+        val repository = TaskRepositoryImpl(taskDao)
+
+        // 3. تجميع الـ UseCases اللي الـ ViewModel محتاجها
+        val taskUseCases = TaskUseCases(
+            getAllTasks = GetAllTasksUseCase(repository),
+            getTaskById = GetTaskByIdUseCase(repository),
+            upsertTask = UpsertTaskUseCase(repository),
+            deleteTask = DeleteTaskUseCase(repository)
+        )
+
+        // 4. تمرير الـ UseCases للـ Factory
+        TaskViewModelFactory(taskUseCases)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,40 +46,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AdheraTheme {
-                // بنمرر الـ taskViewModel للـ NavGraph عشان يوزعه على السكرينات
-                AdheraNavGraph(taskViewModel = taskViewModel)
-            }
-        }
-    }
-
-    // دالة الـ Google Sign-in (تسيبيها زي ما هي)
-    private fun triggerGoogleSignIn(credentialManager: CredentialManager) {
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId("YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com")
-            .setAutoSelectEnabled(true)
-            .build()
-
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
-        lifecycleScope.launch {
-            try {
-                val result = credentialManager.getCredential(
-                    context = this@MainActivity,
-                    request = request
-                )
-
-                val credential = result.credential
-                if (credential is GoogleIdTokenCredential) {
-                    val idToken = credential.idToken
-                    authViewModel.signInWithGoogle(idToken) {
-                        Log.d("Auth", "Google Sign in Successful!")
+                // استدعاء الـ Navigation Graph المستقل وخلاص كدة الـ Flow جاهز للعمل!
+                TaskNavGraph(
+                    taskViewModel = taskViewModel,
+                    onBackToHome = {
+                        finish() // يرجعك للـ Hub الأساسي للتطبيق
                     }
-                }
-            } catch (e: GetCredentialException) {
-                Log.e("Auth", "Error: ${e.message}")
+                )
             }
         }
     }

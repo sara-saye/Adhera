@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,104 +23,154 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.gpproject.adhera.ui.theme.*
 import com.gpproject.adhera.viewmodels.TaskViewModel
 
-
 @Composable
 fun TaskDetailsScreen(
-    taskId: String, // أضيفي هذا
-    viewModel: TaskViewModel, // أضيفي هذا
+    taskId: String,
+    viewModel: TaskViewModel,
     onBack: () -> Unit,
     onEdit: (String) -> Unit
 ) {
-    // جلب بيانات المهمة باستخدام الـ ID (تقدري تستخدمي taskId هنا)
-    val taskTitle = "Project Presentation"
-    val dateValue = "Oct 12 - Oct 18"
-    val onSettings = { onEdit(taskId) }
+    // 1. طلب جلب بيانات المهمة المحددة أول ما السكرين تفتح
+    LaunchedEffect(taskId) {
+        viewModel.loadTaskById(taskId)
+    }
 
-    val isRangeTask = dateValue.contains("-")
+    // 2. مراقبة الـ State الخاصة بالمهمة الحالية
+    val currentTask by viewModel.currentTaskState.collectAsState()
 
-    Scaffold(
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBackIosNew, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(22.dp))
-                }
-                Text(
-                    text = taskTitle,
-                    fontSize = 20.sp,
-                    color = NavyPrimary,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                IconButton(onClick = onSettings) {
-                    Icon(Icons.Default.Settings, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(26.dp))
-                }
-            }
-        },
-        containerColor = Color.White
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(bottom = 40.dp)
+    // تنظيف البيانات عند الخروج من الشاشة لضمان عدم حدوث وميض (Flicker) بالبيانات القديمة المرة القادمة
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearCurrentTask()
+        }
+    }
+
+    // 3. حالة الانتظار حتى تحميل البيانات من الـ Room Database
+    val task = currentTask
+    if (task == null) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.White),
+            contentAlignment = Alignment.Center
         ) {
-            item { StatsGrid(dateValue = dateValue) }
+            CircularProgressIndicator(color = NavyPrimary)
+        }
+    } else {
+        // ربط المتغيرات بالبيانات الحقيقية القادمة من الموديل
+        val taskTitle = task.title
+        val dateValue = if (task.durationType == "Week" || task.durationType == "Month" || task.durationType == "Custom") {
+            if (task.endDate != null) "${task.startDate} - ${task.endDate}" else task.startDate
+        } else {
+            task.startDate
+        }
+        val onSettings = { onEdit(taskId) }
+        val isRangeTask = task.durationType == "Week" || task.durationType == "Month" || task.durationType == "Custom"
 
-            if (isRangeTask) {
-                item { DeadlineProgress(progress = 0.65f, daysLeft = 3) }
-            }
-
-            item {
-                SectionHeading("Description")
-                Text(
-                    text = "This focus sprint focuses on the finalization of the market analysis report. It requires deep concentration cycles to synthesize raw data into actionable insights.",
-                    color = NavyPrimary.copy(alpha = 0.7f),
-                    fontSize = 15.sp,
-                    lineHeight = 22.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            if (isRangeTask) {
+        Scaffold(
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBackIosNew, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(22.dp))
+                    }
+                    Text(
+                        text = taskTitle,
+                        fontSize = 20.sp,
+                        color = NavyPrimary,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    IconButton(onClick = onSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(26.dp))
+                    }
+                }
+            },
+            containerColor = Color.White
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                contentPadding = PaddingValues(bottom = 40.dp)
+            ) {
+                // باصينا الـ dateValue الديناميكي والـ priority والـ focus
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        SectionHeading("Plan Breakdown")
-                        Surface(color = Color(0xFFFDE7E7), shape = RoundedCornerShape(8.dp)) {
-                            Text("7 Tasks", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color.Red, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    StatsGrid(
+                        dateValue = dateValue,
+                        priority = task.priority,
+                        dailyFocus = task.dailyFocus
+                    )
+                }
+
+                if (isRangeTask) {
+                    item { DeadlineProgress(progress = 0.65f, daysLeft = 3) }
+                }
+
+                item {
+                    SectionHeading("Description")
+                    Text(
+                        text = task.description.ifEmpty { "No description provided for this task." },
+                        color = NavyPrimary.copy(alpha = 0.7f),
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                // الـ Plan Breakdown يظهر ديناميكياً إذا كانت هناك خطوات ومهمة ممتدة
+                if (isRangeTask && task.milestones.isNotEmpty()) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SectionHeading("Plan Breakdown")
+                            Surface(color = Color(0xFFFDE7E7), shape = RoundedCornerShape(8.dp)) {
+                                Text(
+                                    text = "${task.milestones.size} Tasks",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    color = Color.Red,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
+                    }
+
+                    // تحويل الـ List<String> الحقيقية الخاصة بالـ Milestones إلى الـ UI Items
+                    itemsIndexed(task.milestones) { index, milestone ->
+                        // محاكاة الحالة بناءً على مكان الخطوة كمثال للمظهر الجمالي الثابت عندك
+                        val status = when {
+                            index < task.milestones.size / 2 -> StepStatus.COMPLETED
+                            index == task.milestones.size / 2 -> StepStatus.IN_PROGRESS
+                            else -> StepStatus.UPCOMING
+                        }
+                        val subtext = when (status) {
+                            StepStatus.COMPLETED -> "Completed"
+                            StepStatus.IN_PROGRESS -> "In Progress"
+                            StepStatus.UPCOMING -> "Upcoming"
+                        }
+                        PlanStepItem(PlanStep("Day ${index + 1}: $milestone", subtext, status))
                     }
                 }
 
-                items(listOf(
-                    PlanStep("Day 1: Data collection", "Completed Monday", StepStatus.COMPLETED),
-                    PlanStep("Day 2: Synthesis & Mapping", "Completed Tuesday", StepStatus.COMPLETED),
-                    PlanStep("Day 3: Draft Narrative", "In Progress", StepStatus.IN_PROGRESS),
-                    PlanStep("Day 4: Visual Design", "Upcoming: Thu", StepStatus.UPCOMING)
-                )) { step ->
-                    PlanStepItem(step)
+                if (task.reminderEnabled) {
+                    item { ReminderCard("5 mins before focus hours") }
                 }
             }
-
-            item { ReminderCard("5 mins before focus hours") }
         }
     }
 }
 
-// باقي الـ Helper functions (StatsGrid, StatItem, إلخ) تظل كما هي في ملفك الأصلي
 @Composable
-fun StatsGrid(dateValue: String) {
+fun StatsGrid(dateValue: String, priority: String, dailyFocus: String) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -129,10 +179,10 @@ fun StatsGrid(dateValue: String) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatItem(if (dateValue.contains("-")) "DATE RANGE" else "START DATE", dateValue, Icons.Default.CalendarToday, Modifier.weight(1f))
-                StatItem("FOCUS LEVEL", "High Priority", Icons.Default.Speed, Modifier.weight(1f))
+                StatItem("FOCUS LEVEL", "$priority Priority", Icons.Default.Speed, Modifier.weight(1f))
             }
             Row(modifier = Modifier.fillMaxWidth()) {
-                StatItem("DAILY FOCUS", "4.5 Hours", Icons.Default.AccessTime, Modifier.weight(1f))
+                StatItem("DAILY FOCUS", dailyFocus, Icons.Default.AccessTime, Modifier.weight(1f))
                 if (dateValue.contains("-")) {
                     StatItem("COMPLETION", "65%", Icons.Default.DonutLarge, Modifier.weight(1f))
                 }

@@ -1,92 +1,88 @@
 package com.gpproject.adhera.viewmodels
 
-import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.ai.client.generativeai.GenerativeModel
-import com.gpproject.adhera.data.model.SubTask
-import com.gpproject.adhera.data.model.Task
-import com.gpproject.adhera.data.repository.TaskRepository
+import com.gpproject.adhera.data.local.todo.TaskEntity
+import com.gpproject.adhera.data.usecase.TaskUseCases
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 
-class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
+class TaskViewModel(
+    private val taskUseCases: TaskUseCases
+) : ViewModel() {
 
-    private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
-        apiKey = "YOUR_API_KEY"
-    )
+    // 1. State لشاشة الـ TodoListScreen (كل التاسكات)
+    private val _tasksState = MutableStateFlow<List<TaskEntity>>(emptyList())
+    val tasksState: StateFlow<List<TaskEntity>> = _tasksState.asStateFlow()
 
-    var generatedSubTasks = mutableStateListOf<SubTask>()
-    var editingSubTasks = mutableStateListOf<SubTask>()
+    // 2. State لشاشة الـ TaskDetailsScreen و EditTaskScreen (التاسك المحددة حالياً)
+    private val _currentTaskState = MutableStateFlow<TaskEntity?>(null)
+    val currentTaskState: StateFlow<TaskEntity?> = _currentTaskState.asStateFlow()
 
-    fun getTaskById(taskId: String): Task? {
-        return null
+    init {
+        // أول ما الـ ViewModel يشتغل، بنبدأ نراقب الداتابيز علطول
+        getAllTasks()
     }
 
-    fun splitTaskWithGemini(description: String) {
-        if (description.length < 20) return
+    // جلب كل التاسكات (تحديث تلقائي بفضل الـ Flow)
+    private fun getAllTasks() {
         viewModelScope.launch {
-            try {
-                val prompt = "Split this task into steps: $description"
-                val response = generativeModel.generateContent(prompt)
-                val steps = response.text?.split("\n")?.filter { it.isNotBlank() } ?: emptyList()
-
-                generatedSubTasks.clear()
-                steps.forEach { step ->
-                    generatedSubTasks.add(SubTask(title = step.trim()))
-                }
-            } catch (e: Exception) {}
+            taskUseCases.getAllTasks().collect { tasks ->
+                _tasksState.value = tasks
+            }
         }
     }
 
-    fun saveTask(title: String, description: String, duration: String, priority: String, startDate: String, startTime: String, focusTime: String, reminder: Boolean) {
+    // جلب بيانات تاسك معينة بالـ ID لشاشات الـ Details والـ Edit
+    fun loadTaskById(taskId: String) {
         viewModelScope.launch {
-            val newTask = Task(
-                title = title,
-                description = description,
-                durationType = duration,
-                priority = priority,
-                startDate = startDate,
-                startTime = startTime,
-                focusTime = focusTime,
-                reminderEnabled = reminder,
-                subTasks = generatedSubTasks.toList()
+            val task = taskUseCases.getTaskById(taskId)
+            _currentTaskState.value = task
+        }
+    }
+
+    // حفظ أو تعديل تاسك (تستخدم في Create و Edit)
+    fun upsertTask(task: TaskEntity, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            taskUseCases.upsertTask(task)
+            onComplete() // Callback عشان نقفل الشاشة بعد الحفظ ونرجع لورا
+        }
+    }
+
+    // مسح التاسك
+    fun deleteTask(task: TaskEntity, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            taskUseCases.deleteTask(task)
+            onComplete()
+        }
+    }
+
+    // تحديث حالة الـ Checkbox بسرعة من الـ ToDoListScreen
+    fun toggleTaskCompletion(task: TaskEntity) {
+        viewModelScope.launch {
+            val updatedTask = task.copy(isCompleted = !task.isCompleted)
+            taskUseCases.upsertTask(updatedTask)
+        }
+    }
+
+    // فانكشن وهمية (Mock) لزرار الـ AI Generate لحد ما نربط الـ API بتاعه
+    fun generateAiMilestones(description: String, onGenerated: (List<String>) -> Unit) {
+        viewModelScope.launch {
+            // هنا بعدين هتحطي نداء الـ API أو السيرفيس الخاصة بالـ ADHD تفكيك المهام
+            // حالياً هنعمل حاجة Mock سريعة للتجربة:
+            val mockMilestones = listOf(
+                "Break description into micro-tasks",
+                "Set a 5-minute timer to start",
+                "Remove all workspace distractions"
             )
-            repository.insertTask(newTask)
+            onGenerated(mockMilestones)
         }
     }
 
-    fun updateTask(
-        taskId: String,
-        newTitle: String,
-        newDescription: String,
-        isReminderEnabled: Boolean,
-        priority: String,
-        duration: String,
-        startDate: String,
-        startTime: String,
-        focusTime: String
-    ) {
-        viewModelScope.launch {
-            val updatedTask = Task(
-                id = taskId,
-                title = newTitle,
-                description = newDescription,
-                reminderEnabled = isReminderEnabled,
-                priority = priority,
-                durationType = duration,
-                startDate = startDate,
-                startTime = startTime,
-                focusTime = focusTime,
-                subTasks = editingSubTasks.toList()
-            )
-            repository.updateTask(updatedTask)
-        }
-    }
-
-    fun loadSubTasksForEditing(subTasks: List<SubTask>) {
-        editingSubTasks.clear()
-        editingSubTasks.addAll(subTasks)
+    // تنظيف الـ currentTask عند الخروج من شاشات التفاصيل
+    fun clearCurrentTask() {
+        _currentTaskState.value = null
     }
 }

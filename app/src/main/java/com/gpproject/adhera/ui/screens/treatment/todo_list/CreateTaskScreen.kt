@@ -20,8 +20,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import com.gpproject.adhera.data.local.todo.TaskEntity // الكائن الحقيقي للداتابيز
 import com.gpproject.adhera.ui.theme.*
 import com.gpproject.adhera.viewmodels.TaskViewModel
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +34,6 @@ fun CreateTaskScreen(
     forceDatePicker: Boolean = false,
     forceTimePicker: Boolean = false,
     viewModel: TaskViewModel
-
 ) {
     var taskTitle by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -40,14 +41,38 @@ fun CreateTaskScreen(
     var showDatePicker by remember { mutableStateOf(forceDatePicker) }
     var showTimePicker by remember { mutableStateOf(forceTimePicker) }
     var reminderEnabled by remember { mutableStateOf(true) }
+
+    // الـ Priority ديناميكي مع قائمة منسدلة حركية
     var selectedPriority by remember { mutableStateOf("Medium") }
+    var priorityMenuExpanded by remember { mutableStateOf(false) }
+
+    // الـ States الخاصة بالتمور والوقت الحركي
+    var startDateText by remember { mutableStateOf("September 04, 2024") }
+    var endDateText by remember { mutableStateOf("Oct 18") }
+    var startTimeText by remember { mutableStateOf("09:00 AM") }
+    var dailyFocusText by remember { mutableStateOf("02:30 HRS") }
+
+    // لستة الـ milestones الحقيقية القادمة من الـ AI أو الإضافة اليدوية
+    val milestonesList = remember { mutableStateListOf<String>() }
 
     val charCount = description.length
-    val milestoneCount = when(selectedDuration) {
-        "Week" -> 7
-        "Month" -> 30
-        "Custom" -> 5
-        else -> 0
+
+    // إدارة عدد الخطوات الافتراضية المبدئية قبل التوليد بالذكاء الاصطناعي
+    LaunchedEffect(selectedDuration) {
+        milestonesList.clear()
+        val defaultCount = when(selectedDuration) {
+            "Week" -> 7
+            "Month" -> 30
+            "Custom" -> 5
+            else -> 0
+        }
+        repeat(defaultCount) { milestonesList.add("") }
+    }
+
+    val priorityColor = when (selectedPriority) {
+        "High" -> Color(0xFFE57373)
+        "Medium" -> Color(0xFFFFD600)
+        else -> Color(0xFF81C784)
     }
 
     Scaffold(
@@ -101,31 +126,55 @@ fun CreateTaskScreen(
                 // 3. Start Date Selection
                 if (selectedDuration == "Custom") {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        EditFieldItem(label = "START DATE", value = "Oct 12", icon = Icons.Default.CalendarToday, modifier = Modifier.weight(1f)) { showDatePicker = true }
-                        EditFieldItem(label = "END DATE", value = "Oct 18", icon = Icons.Default.CalendarToday, modifier = Modifier.weight(1f)) { showDatePicker = true }
+                        EditFieldItem(label = "START DATE", value = startDateText, icon = Icons.Default.CalendarToday, modifier = Modifier.weight(1f)) { showDatePicker = true }
+                        EditFieldItem(label = "END DATE", value = endDateText, icon = Icons.Default.CalendarToday, modifier = Modifier.weight(1f)) { showDatePicker = true }
                     }
                 } else {
-                    EditFieldItem(label = "START DATE", value = "September 04, 2024", icon = Icons.Default.CalendarMonth, modifier = Modifier.fillMaxWidth()) { showDatePicker = true }
+                    EditFieldItem(label = "START DATE", value = startDateText, icon = Icons.Default.CalendarMonth, modifier = Modifier.fillMaxWidth()) { showDatePicker = true }
                 }
 
                 // 4. Time & Focus
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    EditFieldItem(label = "START TIME", value = "09:00 AM", icon = Icons.Default.AccessTime, modifier = Modifier.weight(1f)) { showTimePicker = true }
-                    EditFieldItem(label = "DAILY FOCUS", value = "02:30 HRS", icon = Icons.Default.Timer, modifier = Modifier.weight(1f)) { }
+                    EditFieldItem(label = "START TIME", value = startTimeText, icon = Icons.Default.AccessTime, modifier = Modifier.weight(1f)) { showTimePicker = true }
+                    EditFieldItem(label = "DAILY FOCUS", value = dailyFocusText, icon = Icons.Default.Timer, modifier = Modifier.weight(1f)) { }
                 }
 
-                // 5. Priority
+                // 5. Priority (تفعيل الـ Dropdown Menu الحركي)
                 Column {
                     Text("PRIORITY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                     Spacer(Modifier.height(8.dp))
-                    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = Color.White, border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
-                        Row(modifier = Modifier.padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(Modifier.size(8.dp).background(Color(0xFFFFD600), CircleShape))
-                                Spacer(Modifier.width(10.dp))
-                                Text(selectedPriority, color = NavyPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Box {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { priorityMenuExpanded = true },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+                        ) {
+                            Row(modifier = Modifier.padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(Modifier.size(8.dp).background(priorityColor, CircleShape))
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(selectedPriority, color = NavyPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                }
+                                Icon(Icons.Default.KeyboardArrowDown, null, tint = NavyPrimary)
                             }
-                            Icon(Icons.Default.KeyboardArrowDown, null, tint = NavyPrimary)
+                        }
+
+                        DropdownMenu(
+                            expanded = priorityMenuExpanded,
+                            onDismissRequest = { priorityMenuExpanded = false }
+                        ) {
+                            listOf("High", "Medium", "Low").forEach { level ->
+                                DropdownMenuItem(
+                                    text = { Text(level, fontWeight = FontWeight.Bold, color = NavyPrimary) },
+                                    onClick = {
+                                        selectedPriority = level
+                                        priorityMenuExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -178,11 +227,17 @@ fun CreateTaskScreen(
                             }
                             Spacer(Modifier.width(8.dp))
                             Button(
-                                onClick = {},
+                                onClick = {
+                                    // استدعاء نداء الـ AI لتوليد الـ خطوات الحقيقية بناءً على الوصف
+                                    viewModel.generateAiMilestones(description) { steps ->
+                                        milestonesList.clear()
+                                        milestonesList.addAll(steps)
+                                    }
+                                },
                                 enabled = charCount >= 20,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF0288D1), // Sky Blue أغمق شوية عشان الأبيض يبان
-                                    contentColor = Color.White,        // النص أبيض
+                                    containerColor = Color(0xFF0288D1),
+                                    contentColor = Color.White,
                                     disabledContainerColor = Color.White.copy(0.1f)
                                 ),
                                 shape = RoundedCornerShape(8.dp),
@@ -195,25 +250,50 @@ fun CreateTaskScreen(
                         }
                     }
 
-                    // 8. TASK MILESTONE
+                    // 8. TASK MILESTONE الديناميكي القابل للكتابة والتعديل اليدوي أيضاً
                     Column {
-                        Text("TASK MILESTONE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("TASK MILESTONE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                            TextButton(onClick = { milestonesList.add("") }) {
+                                Icon(Icons.Default.AddCircleOutline, null, modifier = Modifier.size(14.dp), tint = NavyPrimary)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Add step", color = NavyPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
                         Spacer(Modifier.height(8.dp))
-                        repeat(milestoneCount) { index ->
+                        milestonesList.forEachIndexed { index, currentStepText ->
                             Surface(Modifier.fillMaxWidth().padding(bottom = 8.dp), shape = RoundedCornerShape(12.dp), color = Color.White, border = BorderStroke(1.dp, Color(0xFFF0F0F0))) {
                                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Box(Modifier.size(24.dp).background(Color(0xFFEEF1F6), CircleShape), contentAlignment = Alignment.Center) {
                                         Text("${index + 1}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
                                     }
                                     Spacer(Modifier.width(12.dp))
-                                    Text("add step", color = Color.LightGray, fontSize = 13.sp)
+                                    BasicTextField(
+                                        value = currentStepText,
+                                        onValueChange = { milestonesList[index] = it },
+                                        modifier = Modifier.weight(1f),
+                                        textStyle = TextStyle(color = NavyPrimary, fontSize = 13.sp),
+                                        decorationBox = { innerTextField ->
+                                            if (currentStepText.isEmpty()) Text("add step", color = Color.LightGray, fontSize = 13.sp)
+                                            innerTextField()
+                                        }
+                                    )
+                                    if (milestonesList.size > 1) {
+                                        IconButton(onClick = { milestonesList.removeAt(index) }, modifier = Modifier.size(20.dp)) {
+                                            Icon(Icons.Default.Clear, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // 9. Reminder (Exactly as you wanted)
+                // 9. Reminder
                 Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.NotificationsActive, null, tint = NavyPrimary, modifier = Modifier.size(24.dp))
@@ -235,11 +315,35 @@ fun CreateTaskScreen(
                     }
                 }
 
-                // 10. Final Save Button
+                // 10. Final Save Button المربوط بالـ database الحقيقية
                 Button(
-                    onClick = {},
+                    onClick = {
+                        if (taskTitle.isNotBlank()) {
+                            val newTask = TaskEntity(
+                                id = UUID.randomUUID().toString(), // توليد معرف فريد تلقائي
+                                title = taskTitle,
+                                description = description,
+                                durationType = selectedDuration,
+                                startDate = startDateText,
+                                endDate = if (selectedDuration == "Custom") endDateText else null,
+                                startTime = startTimeText,
+                                dailyFocus = dailyFocusText,
+                                priority = selectedPriority,
+                                reminderEnabled = reminderEnabled,
+                                isCompleted = false,
+                                milestones = milestonesList.filter { it.isNotBlank() }.toList()
+                            )
+                            viewModel.upsertTask(newTask) {
+                                onBack() // العودة للخلف فور اكتمال الحفظ بنجاح
+                            }
+                        }
+                    },
+                    enabled = taskTitle.isNotBlank(),
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NavyPrimary,
+                        disabledContainerColor = NavyPrimary.copy(alpha = 0.5f)
+                    ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text("Save Task", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
@@ -269,7 +373,17 @@ fun CreateTaskScreen(
                                             val dateIdx = row * 7 + col - 2
                                             if (dateIdx in 1..30) {
                                                 val isSelected = dateIdx == 4
-                                                Box(Modifier.size(32.dp).background(if(isSelected) NavyPrimary else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
+                                                Box(
+                                                    Modifier.size(32.dp).background(if(isSelected) NavyPrimary else Color.Transparent, CircleShape)
+                                                        .clickable {
+                                                            if (selectedDuration == "Custom") {
+                                                                endDateText = "Sep $dateIdx"
+                                                            } else {
+                                                                startDateText = "September ${String.format("%02d", dateIdx)}, 2024"
+                                                            }
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
                                                     Text("$dateIdx", color = if(isSelected) Color.White else Color.DarkGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                                 }
                                             } else { Spacer(Modifier.size(32.dp)) }
@@ -295,7 +409,7 @@ fun CreateTaskScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text("08", color = Color.LightGray, fontSize = 16.sp)
-                                    Text("09", color = NavyPrimary, fontSize = 44.sp, fontWeight = FontWeight.Black)
+                                    Text("09", color = NavyPrimary, fontSize = 44.sp, fontWeight = FontWeight.Black, modifier = Modifier.clickable { startTimeText = "09:00 AM" })
                                     Text("10", color = Color.LightGray, fontSize = 16.sp)
                                 }
                                 Text(" : ", fontSize = 32.sp, color = NavyPrimary, fontWeight = FontWeight.Bold)
@@ -360,23 +474,3 @@ fun CreateFieldItem(label: String, value: String, onValueChange: (String) -> Uni
         }
     }
 }
-// --- Previews ---
-//private const val PRE_DEV = "spec:width=360dp,height=1000dp,dpi=440"
-//
-//@Preview(name = "1. Today View", device = PRE_DEV, showBackground = true)
-//@Composable fun Prev1() { AdheraTheme { CreateTaskScreen(onBack = {},) } }
-//
-//@Preview(name = "2. Week View", device = PRE_DEV, showBackground = true)
-//@Composable fun Prev2() { AdheraTheme { CreateTaskScreen(onBack = {}, initialTab = "Week",) } }
-//
-//@Preview(name = "3. Custom Range", device = PRE_DEV, showBackground = true)
-//@Composable fun Prev3() { AdheraTheme { CreateTaskScreen(onBack = {}, initialTab = "Custom",) } }
-//
-//@Preview(name = "4. Month View", device = PRE_DEV, showBackground = true)
-//@Composable fun Prev4() { AdheraTheme { CreateTaskScreen(onBack = {}, initialTab = "Month",) } }
-//
-//@Preview(name = "5. Calendar Picker", device = PRE_DEV, showBackground = true)
-//@Composable fun Prev5() { AdheraTheme { CreateTaskScreen(onBack = {}, forceDatePicker = true,) } }
-//
-//@Preview(name = "6. Time Picker", device = PRE_DEV, showBackground = true)
-//@Composable fun Prev6() { AdheraTheme { CreateTaskScreen(onBack = {}, forceTimePicker = true,) } }

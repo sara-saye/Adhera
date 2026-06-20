@@ -2,10 +2,13 @@ package com.gpproject.adhera.ui.screens.treatment.todo_list
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gpproject.adhera.viewmodels.TaskViewModel // اتأكدي إن المسار ده صح حسب مشروعك
+import com.gpproject.adhera.data.local.todo.TaskEntity // الموديل الحقيقي للداتابيز
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +37,21 @@ fun TodoListScreen(
 ) {
     var selectedTab by remember { mutableIntStateOf(initialTab) }
 
+    // مراقبة لستة التاسكات الحقيقية القادمة من الـ Database
+    val allTasks by viewModel.tasksState.collectAsState()
+
+    // فلترة التاسكات حركياً بناءً على الـ Tab المفتوح
+    val filteredTasks = remember(allTasks, selectedTab) {
+        allTasks.filter { task ->
+            when (selectedTab) {
+                0 -> task.durationType == "Today"
+                1 -> task.durationType == "Week"
+                2 -> task.durationType == "Month"
+                else -> true
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.White,
@@ -57,14 +75,26 @@ fun TodoListScreen(
         ) {
             // Header (Back - Adhera - More)
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBackIosNew, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Default.ArrowBackIosNew,
+                        contentDescription = null,
+                        tint = NavyPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-                Text(text = "To Do", fontSize = 22.sp, color = NavyPrimary, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    text = "To Do",
+                    fontSize = 22.sp,
+                    color = NavyPrimary,
+                    fontWeight = FontWeight.ExtraBold
+                )
                 IconButton(onClick = { }) {
                     Icon(Icons.Default.MoreVert, contentDescription = null, tint = NavyPrimary)
                 }
@@ -110,15 +140,30 @@ fun TodoListScreen(
                 }
             }
 
-            // العناصر الأساسية (Your Tasks & Clear Completed) - رجعتهم تاني
+            // العناصر الأساسية (Your Tasks & Clear Completed)
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Your Tasks", fontSize = 16.sp, color = NavyPrimary, fontWeight = FontWeight.Bold)
-                TextButton(onClick = { }) {
-                    Text(text = "Clear Completed", color = NavyPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Your Tasks",
+                    fontSize = 16.sp,
+                    color = NavyPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                TextButton(onClick = {
+                    // مسح جميع التاسكات المنتهية من الـ database بضغطة واحدة
+                    // viewModel.clearCompletedTasks()
+                }) {
+                    Text(
+                        text = "Clear Completed",
+                        color = NavyPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
@@ -128,32 +173,17 @@ fun TodoListScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 contentPadding = PaddingValues(bottom = 20.dp)
             ) {
-                item {
-                    // تاسك عادية (الوقت بيظهر في Today والتاريخ في الباقي)
+                // عرض لستة البيانات الحقيقية ديناميكياً
+                items(filteredTasks) { task ->
                     TaskItem(
-                        title = "Project Research",
-                        subtitle = if (selectedTab == 0) "09:00 AM - 11:30 AM" else "Oct 1 - Oct 15",
-                        priority = "High",
-                        isCompleted = false
-                    )
-                }
-                item {
-                    // تاسك فيها زرار الـ edit/delete
-                    TaskItem(
-                        title = "Team Sync",
-                        subtitle = if (selectedTab == 0) "12:00 PM - 01:00 PM" else "Oct 5 - Oct 20",
-                        priority = "Medium",
-                        isCompleted = false,
-                        showActions = true
-                    )
-                }
-                item {
-                    // تاسك منتهية (Checked)
-                    TaskItem(
-                        title = "Check Emails",
-                        subtitle = if (selectedTab == 0) "08:00 AM - 08:30 AM" else "Oct 1 - Oct 31",
-                        priority = "Low",
-                        isCompleted = true
+                        task = task,
+                        selectedTab = selectedTab,
+                        // عرض أزرار التحكم لو التاسك مش منتهية كمثال أو حابة تثبتيها true براحتك
+                        showActions = !task.isCompleted,
+                        onToggleClick = { viewModel.toggleTaskCompletion(task) },
+                        onItemClick = { onNavigateToDetails(task.id) },
+                        onEditClick = { onNavigateToEdit(task.id) },
+                        onDeleteClick = { viewModel.deleteTask(task) }
                     )
                 }
 
@@ -166,54 +196,126 @@ fun TodoListScreen(
 }
 
 @Composable
-fun TaskItem(title: String, subtitle: String, priority: String, isCompleted: Boolean, showActions: Boolean = false) {
-    val priorityColor = when (priority) {
+fun TaskItem(
+    task: TaskEntity,
+    selectedTab: Int,
+    showActions: Boolean = false,
+    onToggleClick: () -> Unit,
+    onItemClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    val priorityColor = when (task.priority) {
         "High" -> Color(0xFFE57373)
         "Medium" -> Color(0xFFFFB74D)
         else -> Color(0xFF81C784)
     }
 
+    // تجهيز الـ subtitle بناءً على الـ Tab المفتوح والبيانات الحقيقية للتاسك
+    val subtitleText = if (selectedTab == 0) {
+        task.startTime
+    } else {
+        if (task.endDate != null) "${task.startDate} - ${task.endDate}" else task.startDate
+    }
+
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Surface(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onItemClick() }, // الضغط على الكارد ينقل للتفاصيل
             shape = RoundedCornerShape(18.dp),
             color = Color(0xFFF7F9FC),
             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
         ) {
-            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // الـ Custom Checkbox مربوط بـ الـ click والـ state الحقيقية
                     Box(
-                        modifier = Modifier.size(24.dp).background(if (isCompleted) NavyPrimary else Color.White, CircleShape).border(1.5.dp, NavyPrimary, CircleShape),
+                        modifier = Modifier
+                            .size(24.dp)
+                            .background(
+                                if (task.isCompleted) NavyPrimary else Color.White,
+                                CircleShape
+                            )
+                            .border(1.5.dp, NavyPrimary, CircleShape)
+                            .clickable { onToggleClick() },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (isCompleted) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        if (task.isCompleted) Icon(
+                            Icons.Default.Check,
+                            null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = title,
+                            text = task.title,
                             fontWeight = FontWeight.Bold,
                             color = NavyPrimary,
                             fontSize = 16.sp,
-                            textDecoration = if (isCompleted) TextDecoration.LineThrough else null
+                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
                         )
-                        Text(text = subtitle, fontSize = 12.sp, color = Color.Gray)
+                        Text(text = subtitleText, fontSize = 12.sp, color = Color.Gray)
                     }
                 }
 
-                Surface(color = priorityColor.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
-                    Text(text = priority, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = priorityColor, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                Surface(
+                    color = priorityColor.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = task.priority,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = priorityColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black
+                    )
                 }
             }
         }
 
+        // أزرار الـ Edit والـ Delete الحقيقية
         if (showActions) {
-            Column(modifier = Modifier.padding(start = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(modifier = Modifier.size(32.dp).background(NavyPrimary, CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Column(
+                modifier = Modifier.padding(start = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(NavyPrimary, CircleShape)
+                        .clickable { onEditClick() }, // ينقل لشاشة الـ Edit
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
-                Box(modifier = Modifier.size(32.dp).background(Color(0xFFE57373), CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Delete, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(Color(0xFFE57373), CircleShape)
+                        .clickable { onDeleteClick() }, // يمسح من الداتابيز
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
@@ -223,13 +325,25 @@ fun TaskItem(title: String, subtitle: String, priority: String, isCompleted: Boo
 @Composable
 fun FocusTipBox() {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp),
         colors = CardDefaults.cardColors(containerColor = NavyPrimary),
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(text = "Focus Tip", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            Text(text = "Eliminate visual clutter.", color = Color.Magenta, fontWeight = FontWeight.Black, fontSize = 15.sp)
+            Text(
+                text = "Focus Tip",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+            Text(
+                text = "Eliminate visual clutter.",
+                color = Color.Magenta,
+                fontWeight = FontWeight.Black,
+                fontSize = 15.sp
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Focusing on one task at a time increases completion rate by 40%.",
@@ -240,17 +354,15 @@ fun FocusTipBox() {
     }
 }
 
-// الـ Preview المجمع للسكرينتين (Today & This Week)
 @Preview(showBackground = true)
 @Composable
 fun TodoTodayPreview() {
     AdheraTheme {
         TodoListScreen(
             onNavigateToCreate = {},
-            onNavigateToEdit = {},    // ضيفي السطر ده
-            onNavigateToDetails = {}, // ضيفي السطر ده
+            onNavigateToEdit = {},
+            onNavigateToDetails = {},
             onBack = {}
         )
     }
 }
-// كرري نفس الإضافة (onNavigateToEdit و onNavigateToDetails) في باقي الـ Previews اللي تحت
