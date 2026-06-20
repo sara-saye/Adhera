@@ -1,86 +1,145 @@
 package com.gpproject.adhera.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.gpproject.adhera.data.model.UserProfile
+import kotlinx.coroutines.tasks.await
 
-class AuthRepository {
+class FirebaseRepository(
 
-    private val auth = FirebaseAuth.getInstance()
-    private val db = FirebaseFirestore.getInstance()
+    private val auth: FirebaseAuth,
 
-    // ================= SIGN UP =================
-    fun signUp(
+    private val firestore: FirebaseFirestore
+) {
+
+    // =========================
+    // Email Signup
+    // =========================
+
+    suspend fun signUp(
+
         email: String,
-        password: String,
-        user: UserProfile,
-        onSuccess: () -> Unit,
-        onError: (String?) -> Unit
-    ) {
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnSuccessListener { result ->
 
-                // 🔥 Email Verification
-                result.user?.sendEmailVerification()
+        password: String
+    ): Result<Unit> {
 
-                val uid = result.user?.uid ?: ""
+        return try {
 
-                db.collection("users").document(uid)
-                    .set(user.copy(uid = uid))
-                    .addOnSuccessListener { onSuccess() }
-                    .addOnFailureListener { onError(it.message) }
+            auth.createUserWithEmailAndPassword(
+                email,
+                password
+            ).await()
 
-            }
-            .addOnFailureListener { onError(it.message) }
+            auth.currentUser?.sendEmailVerification()?.await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
     }
 
-    // ================= LOGIN =================
-    fun login(
+    // =========================
+    // Login
+    // =========================
+
+    suspend fun login(
+
         email: String,
-        password: String,
-        onSuccess: () -> Unit,
-        onError: (String?) -> Unit
-    ) {
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnSuccessListener { result ->
 
-                // 🔥 تأكد إن الإيميل verified
-                if (result.user?.isEmailVerified == true) {
-                    onSuccess()
-                } else {
-                    onError("Please verify your email first")
-                }
+        password: String
+    ): Result<Unit> {
 
-            }
-            .addOnFailureListener { onError(it.message) }
+        return try {
+
+            auth.signInWithEmailAndPassword(
+                email,
+                password
+            ).await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
     }
 
-    // ================= FORGOT PASSWORD =================
-    fun resetPassword(
-        email: String,
-        onSuccess: () -> Unit,
-        onError: (String?) -> Unit
-    ) {
-        auth.sendPasswordResetEmail(email)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onError(it.message) }
+    // =========================
+    // Reset Password
+    // =========================
+
+    suspend fun resetPassword(
+
+        email: String
+    ): Result<Unit> {
+
+        return try {
+
+            auth.sendPasswordResetEmail(email)
+                .await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
     }
 
-    // ================= GOOGLE SIGN IN =================
-    fun firebaseAuthWithGoogle(
-        idToken: String,
-        onSuccess: () -> Unit,
-        onError: (String?) -> Unit
-    ) {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
 
-        auth.signInWithCredential(credential)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onError(it.message) }
+    // =========================
+    // Save User Data
+    // =========================
+
+    suspend fun saveAdditionalInfo(
+
+        profile: UserProfile
+    ): Result<Unit> {
+
+        return try {
+
+            firestore.collection("users")
+                .document(profile.uid)
+                .set(profile)
+                .await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
     }
 
-    fun logout() = auth.signOut()
+    // =========================
+    // Check Email Verification
+    // =========================
 
-    fun isUserLoggedIn() = auth.currentUser != null
+    fun isEmailVerified(): Boolean {
+
+        auth.currentUser?.reload()
+
+        return auth.currentUser?.isEmailVerified == true
+    }
+
+    // =========================
+    // Current User
+    // =========================
+
+    fun getCurrentUserId(): String {
+
+        return auth.currentUser?.uid ?: ""
+    }
+
+    fun logout() {
+
+        auth.signOut()
+    }
+
+    suspend fun reloadUser() {
+
+        auth.currentUser?.reload()?.await()
+    }
 }

@@ -1,9 +1,9 @@
 package com.gpproject.adhera
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val credentialManager = CredentialManager.create(this)
+        enableEdgeToEdge()
 
         setContent {
             AdheraTheme {

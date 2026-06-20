@@ -1,97 +1,359 @@
 package com.gpproject.adhera.viewmodels
 
-import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.gpproject.adhera.data.model.AuthFormState
+import com.gpproject.adhera.data.model.Gender
 import com.gpproject.adhera.data.model.UserProfile
-import com.gpproject.adhera.data.repository.AuthRepository
+import com.gpproject.adhera.data.remote.FirebaseModule
+import com.gpproject.adhera.data.repository.FirebaseRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
 
-    private val repo = AuthRepository()
+    private val repository = FirebaseRepository(
+        FirebaseModule.auth,
+        FirebaseModule.firestore
+    )
 
-    var email by mutableStateOf("")
-    var password by mutableStateOf("")
-    var name by mutableStateOf("")
-    var nickname by mutableStateOf("")
-    var age by mutableStateOf("")
-    var selectedGender by mutableStateOf<String?>(null)
+    private val _state = MutableStateFlow(AuthFormState())
 
-    // ضفنا المتغيرات الناقصة لربط حسابات الـ Parent والـ Child
-    var isChildUsingThisPhone by mutableStateOf(true)
-    var shouldLinkPhones by mutableStateOf(false)
+    val state: StateFlow<AuthFormState> =
+        _state.asStateFlow()
 
-    var loginEmail by mutableStateOf("")
-    var loginPassword by mutableStateOf("")
+    // =========================
+    // TextFields Updates
+    // =========================
 
-    var errorMessage by mutableStateOf<String?>(null)
-    var isLoading by mutableStateOf(false)
-
-    // ================= SIGN UP =================
-    fun performSignUp(role: String, onSuccess: () -> Unit) {
-        val user = UserProfile(
-            role = role,
-            email = email,
-            name = name,
-            nickname = nickname,
-            gender = selectedGender,
-            age = age,
-            childWillUseThisPhone = isChildUsingThisPhone, // تم الربط
-            linkParentPhone = shouldLinkPhones // تم الربط
+    fun onEmailChanged(value: String) {
+        _state.value = _state.value.copy(
+            email = value,
+            error = null
         )
+    }
 
-        isLoading = true
+    fun onPasswordChanged(value: String) {
+        _state.value = _state.value.copy(
+            password = value,
+            error = null
+        )
+    }
 
-        repo.signUp(
-            email,
-            password,
-            user,
-            onSuccess = {
-                isLoading = false
-                onSuccess()
-            },
-            onError = {
-                isLoading = false
-                errorMessage = it
+    fun onConfirmPasswordChanged(value: String) {
+        _state.value = _state.value.copy(
+            confirmPassword = value,
+            error = null
+        )
+    }
+
+    fun onNicknameChanged(value: String) {
+        _state.value = _state.value.copy(
+            nickname = value
+        )
+    }
+
+    fun onAgeChanged(value: String) {
+        _state.value = _state.value.copy(
+            age = value
+        )
+    }
+
+    fun onGenderSelected(gender: Gender) {
+        _state.value = _state.value.copy(
+            selectedGender = gender
+        )
+    }
+
+    // =========================
+    // Validation
+    // =========================
+
+    private fun validateLogin(): Boolean {
+
+        return when {
+
+            _state.value.email.isBlank() -> {
+
+                _state.value = _state.value.copy(
+                    error = "Email can't be empty"
+                )
+
+                false
             }
-        )
-    }
 
-    // ================= LOGIN =================
-    fun performLogin(onSuccess: () -> Unit) {
-        isLoading = true
+            _state.value.password.isBlank() -> {
 
-        repo.login(
-            loginEmail,
-            loginPassword,
-            onSuccess = {
-                isLoading = false
-                onSuccess()
-            },
-            onError = {
-                isLoading = false
-                errorMessage = it
+                _state.value = _state.value.copy(
+                    error = "Password can't be empty"
+                )
+
+                false
             }
-        )
+
+            _state.value.password.length < 6 -> {
+
+                _state.value = _state.value.copy(
+                    error = "Password must be at least 6 characters"
+                )
+
+                false
+            }
+
+            else -> true
+        }
     }
 
-    // ================= RESET PASSWORD =================
-    // خليناها تستقبل الإيميل مباشرة عشان الـ Dialog
-    fun resetPassword(targetEmail: String, onSuccess: () -> Unit) {
-        repo.resetPassword(
-            targetEmail,
-            onSuccess = onSuccess,
-            onError = { errorMessage = it }
-        )
+    private fun validateSignup(): Boolean {
+
+        return when {
+
+            _state.value.email.isBlank() -> {
+
+                _state.value = _state.value.copy(
+                    error = "Email can't be empty"
+                )
+
+                false
+            }
+
+            _state.value.password.isBlank() -> {
+
+                _state.value = _state.value.copy(
+                    error = "Password can't be empty"
+                )
+
+                false
+            }
+
+            _state.value.password.length < 6 -> {
+
+                _state.value = _state.value.copy(
+                    error = "Password too short"
+                )
+
+                false
+            }
+
+            _state.value.confirmPassword.isBlank() -> {
+
+                _state.value = _state.value.copy(
+                    error = "Please confirm password"
+                )
+
+                false
+            }
+
+            _state.value.password != _state.value.confirmPassword -> {
+
+                _state.value = _state.value.copy(
+                    error = "Passwords don't match"
+                )
+
+                false
+            }
+
+            else -> true
+        }
     }
 
-    // ================= GOOGLE SIGN IN =================
-    fun signInWithGoogle(idToken: String, onSuccess: () -> Unit) {
-        repo.firebaseAuthWithGoogle(
-            idToken,
-            onSuccess = onSuccess,
-            onError = { errorMessage = it }
-        )
+    // =========================
+    // Login
+    // =========================
+
+    fun login(
+
+        onSuccess: () -> Unit
+    ) {
+
+        if (!validateLogin()) return
+
+        viewModelScope.launch {
+
+            _state.value = _state.value.copy(
+                isLoading = true,
+                error = null
+            )
+
+            val result = repository.login(
+                email = _state.value.email,
+                password = _state.value.password
+            )
+
+            result.onSuccess {
+
+                _state.value = _state.value.copy(
+                    isLoading = false
+                )
+
+                onSuccess()
+            }
+
+            result.onFailure {
+
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = it.message ?: "Something went wrong"
+                )
+            }
+        }
     }
 
-    fun logout() = repo.logout()
+    // =========================
+    // Signup
+    // =========================
+
+    fun signUp(
+
+        onSuccess: () -> Unit
+    ) {
+
+        if (!validateSignup()) return
+
+        viewModelScope.launch {
+
+            _state.value = _state.value.copy(
+                isLoading = true,
+                error = null
+            )
+
+            val result = repository.signUp(
+                email = _state.value.email,
+                password = _state.value.password
+            )
+
+            result.onSuccess {
+
+                _state.value = _state.value.copy(
+                    isLoading = false
+                )
+
+                onSuccess()
+            }
+
+            result.onFailure {
+
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = it.message ?: "Something went wrong"
+                )
+            }
+        }
+    }
+
+    // =========================
+    // Reset Password
+    // =========================
+
+    fun resetPassword(
+
+        onSuccess: () -> Unit
+    ) {
+
+        if (_state.value.email.isBlank()) {
+
+            _state.value = _state.value.copy(
+                error = "Please enter your email"
+            )
+
+            return
+        }
+
+        viewModelScope.launch {
+
+            _state.value = _state.value.copy(
+                isLoading = true,
+                error = null
+            )
+
+            val result = repository.resetPassword(
+                _state.value.email
+            )
+
+            result.onSuccess {
+
+                _state.value = _state.value.copy(
+                    isLoading = false
+                )
+
+                onSuccess()
+            }
+
+            result.onFailure {
+
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = it.message
+                )
+            }
+        }
+    }
+
+    fun saveAdditionalInfo(
+
+        role: String,
+
+        onSuccess: () -> Unit
+    ) {
+
+        viewModelScope.launch {
+
+            val uid = repository.getCurrentUserId()
+
+            val profile = UserProfile(
+
+                uid = uid,
+
+                email = state.value.email,
+
+                role = role,
+
+                nickname = state.value.nickname,
+
+                age = state.value.age.toIntOrNull(),
+
+                gender = state.value.selectedGender
+            )
+
+            val result = repository.saveAdditionalInfo(
+                profile
+            )
+
+            result.onSuccess {
+
+                onSuccess()
+            }
+
+            result.onFailure {
+
+                _state.value = _state.value.copy(
+                    error = it.message
+                )
+            }
+        }
+    }
+
+    fun checkEmailVerification(
+
+        onVerified: () -> Unit
+    ) {
+
+        viewModelScope.launch {
+
+            repository.reloadUser()
+
+            if (repository.isEmailVerified()) {
+
+                onVerified()
+
+            } else {
+
+                _state.value = _state.value.copy(
+                    error = "Email is not verified yet"
+                )
+            }
+        }
+    }
 }
