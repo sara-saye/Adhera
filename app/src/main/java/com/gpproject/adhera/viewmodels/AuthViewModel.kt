@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.gpproject.adhera.data.model.AuthFormState
 import com.gpproject.adhera.data.model.Gender
 import com.gpproject.adhera.data.model.UserProfile
-import com.gpproject.adhera.data.remote.FirebaseModule
+import com.gpproject.adhera.data.remote.firebase.FirebaseModule
 import com.gpproject.adhera.data.repository.FirebaseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

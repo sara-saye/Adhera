@@ -1,4 +1,4 @@
-package com.gpproject.adhera.data.remote
+package com.gpproject.adhera.data.remote.firebase
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore

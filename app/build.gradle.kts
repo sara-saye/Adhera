@@ -80,6 +80,9 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.9.7")
     implementation("com.airbnb.android:lottie-compose:6.4.0")
     implementation("androidx.compose.foundation:foundation:1.6.x")
-
-
+    //Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    // OkHttp logging for debugging requests
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 }
