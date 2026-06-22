@@ -7,6 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+//import com.gpproject.adhera.ui.navigation.AuthNavGraph
 import com.gpproject.adhera.data.local.todo.AppDatabase // تم استيراد الداتابيز الحقيقية بتاعتك
 import com.gpproject.adhera.data.remote.ginimiai.GeminiModelsFactory
 import com.gpproject.adhera.data.repository.AdheraRepositoryImpl
@@ -68,13 +71,7 @@ class MainActivity : ComponentActivity() {
 //                )
             }
         }
-
-
-
-
-
     }
-
 
 
 }
