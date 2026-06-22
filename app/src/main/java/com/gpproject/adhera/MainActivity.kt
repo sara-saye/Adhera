@@ -11,7 +11,7 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.lifecycleScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-//import com.gpproject.adhera.ui.navigation.AuthNavGraph
+import com.gpproject.adhera.ui.navigation.AuthNavGraph
 import com.gpproject.adhera.ui.theme.AdheraTheme
 import com.gpproject.adhera.viewmodels.AuthViewModel
 import kotlinx.coroutines.launch
@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
 
             AdheraTheme {
 
-//                AuthNavGraph()
+                AuthNavGraph()
             }
         }
     }
