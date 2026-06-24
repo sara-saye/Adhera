@@ -250,3 +250,168 @@
 //        }
 //    }
 //}
+
+
+package com.gpproject.adhera.ui.navigation
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+
+import com.gpproject.adhera.ui.screens.home.HomeHubScreen
+import com.gpproject.adhera.ui.screens.treatment.habit_tracker.habits.NewHabitScreen
+import com.gpproject.adhera.ui.screens.treatment.habit_tracker.reminders.RemindersScreen
+import com.gpproject.adhera.ui.screens.treatment.habit_tracker.stats.PerformanceAnalyticsScreen
+
+// ================= Bottom Navigation =================
+
+sealed class BottomNavItem(
+    val route: String,
+    val title: String,
+    val icon: ImageVector
+) {
+
+    object Home : BottomNavItem(
+        route = "home_hub",
+        title = "Today",
+        icon = Icons.Outlined.Home
+    )
+
+    object Analytics : BottomNavItem(
+        route = "performance_analytics",
+        title = "Habits",
+        icon = Icons.Outlined.BarChart
+    )
+
+    object Reminders : BottomNavItem(
+        route = "reminders_screen",
+        title = "Reminders",
+        icon = Icons.Outlined.Notifications
+    )
+
+    object Profile : BottomNavItem(
+        route = "profile_screen",
+        title = "Profile",
+        icon = Icons.Outlined.Person
+    )
+}
+
+@Composable
+fun BottomBar(navController: NavController) {
+
+    val items = listOf(
+        BottomNavItem.Home,
+        BottomNavItem.Analytics,
+        BottomNavItem.Reminders,
+        BottomNavItem.Profile
+    )
+
+    val navBackStackEntry =
+        navController.currentBackStackEntryAsState().value
+
+    val currentRoute =
+        navBackStackEntry?.destination?.route
+
+    NavigationBar {
+
+        items.forEach { item ->
+
+            NavigationBarItem(
+                selected = currentRoute == item.route,
+
+                onClick = {
+                    navController.navigate(item.route) {
+                        launchSingleTop = true
+                    }
+                },
+
+                icon = {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.title
+                    )
+                },
+
+                label = {
+                    Text(item.title)
+                }
+            )
+        }
+    }
+}
+
+// ================= Nav Graph =================
+
+@Composable
+fun AdheraNavGraph() {
+
+    val navController = rememberNavController()
+
+    Scaffold(
+        bottomBar = {
+            BottomBar(navController)
+        }
+    ) { paddingValues ->
+
+        NavHost(
+            navController = navController,
+            startDestination = "home_hub",
+            modifier = Modifier.padding(paddingValues)
+        ) {
+
+            // ================= Home =================
+
+//            composable("home_hub") {
+//                HomeHubScreen(
+//                    onNavigateToHabits = {
+//                        navController.navigate("new_habit_route")
+//                    }
+//                )
+//            }
+
+            // ================= Analytics =================
+
+            composable("performance_analytics") {
+                PerformanceAnalyticsScreen()
+            }
+
+            // ================= Reminders =================
+
+            composable("reminders_screen") {
+                RemindersScreen()
+            }
+
+            // ================= New Habit =================
+
+            composable("new_habit_route") {
+                NewHabitScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // ================= Dummy Profile =================
+
+            composable("profile_screen") {
+                Text("Profile Screen")
+            }
+        }
+    }
+}
