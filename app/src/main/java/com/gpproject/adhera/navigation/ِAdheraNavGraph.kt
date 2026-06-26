@@ -31,6 +31,8 @@ import com.gpproject.adhera.auth.screens.AccountCreatedScreen
 
 // ── Home ──────────────────────────────────────────────────────────────────────
 import com.gpproject.adhera.ui.screens.home.HomeHubScreen
+import com.gpproject.adhera.treatment.treatment.habit_tracker.HabitTrackerRoutes
+import com.gpproject.adhera.treatment.treatment.habit_tracker.habitTrackerGraph
 
 // ── Detection ─────────────────────────────────────────────────────────────────
 import com.gpproject.adhera.detection.screens.ADHDDetectionWelcomeScreen
@@ -62,6 +64,7 @@ object Routes {
     const val ADDITIONAL_INFO    = "additional_info/{role}"
     const val ACCOUNT_CREATED    = "account_created"
     const val HOME               = "home"
+    const val HABIT_TRACKER      = HabitTrackerRoutes.Graph
     const val DETECTION_WELCOME  = "detection_welcome"
     const val SCAN_QUESTION      = "scan_question"
     const val MEDICAL_EEG        = "medical_eeg"
@@ -237,9 +240,12 @@ fun AdheraNavGraph(
         composable(Routes.HOME) {
             HomeHubScreen(
                 onNavigateToTodo        = { /* TODO: wire To-Do screen */ },
-                onNavigateToFocusGames  = { navController.navigate(Routes.DETECTION_WELCOME) }
+                onNavigateToFocusGames  = { navController.navigate(Routes.DETECTION_WELCOME) },
+                onNavigateToHabits      = { navController.navigate(Routes.HABIT_TRACKER) }
             )
         }
+
+        habitTrackerGraph(navController)
 
         // =====================================================================
         //  DETECTION FLOW
