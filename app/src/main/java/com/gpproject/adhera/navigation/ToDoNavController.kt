@@ -6,15 +6,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.gpproject.adhera.treatment.treatment.todo_list.CreateTaskScreen
-import com.gpproject.adhera.treatment.treatment.todo_list.EditTaskScreen
-import com.gpproject.adhera.treatment.treatment.todo_list.TaskDetailsScreen
-import com.gpproject.adhera.treatment.treatment.todo_list.TodoListScreen
-import com.gpproject.adhera.treatment.treatment.todo_list.TaskViewModel
+import com.gpproject.adhera.treatment.todo_list.screens.CreateTaskScreen
+import com.gpproject.adhera.treatment.todo_list.screens.EditTaskScreen
+import com.gpproject.adhera.treatment.todo_list.screens.TaskDetailsScreen
+import com.gpproject.adhera.treatment.todo_list.screens.TodoListScreen
+import com.gpproject.adhera.treatment.todo_list.screens.TaskViewModel
 
 @Composable
 fun TaskNavGraph(
-    taskViewModel: TaskViewModel,
+    taskViewModel: com.gpproject.adhera.treatment.todo_list.screens.TaskViewModel,
     onBackToHome: () -> Unit // كول باك لو حابة ترجعي للـ Home الأكبر لما اليوزر يضغط باك من شاشة الـ لستة الرئيسية
 ) {
     val navController = rememberNavController()
@@ -23,7 +23,7 @@ fun TaskNavGraph(
     NavHost(navController = navController, startDestination = "todo_list") {
 
         composable("todo_list") {
-            TodoListScreen(
+            com.gpproject.adhera.treatment.todo_list.screens.TodoListScreen(
                 viewModel = taskViewModel,
                 onNavigateToCreate = { navController.navigate("create_task") },
                 onNavigateToEdit = { id -> navController.navigate("edit_task/$id") },
@@ -33,7 +33,7 @@ fun TaskNavGraph(
         }
 
         composable("create_task") {
-            CreateTaskScreen(
+            com.gpproject.adhera.treatment.todo_list.screens.CreateTaskScreen(
                 viewModel = taskViewModel,
                 onBack = { navController.popBackStack() }
             )
@@ -44,7 +44,7 @@ fun TaskNavGraph(
             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
         ) { backStackEntry ->
             val taskId = backStackEntry.arguments?.getString("taskId") ?: ""
-            TaskDetailsScreen(
+            com.gpproject.adhera.treatment.todo_list.screens.TaskDetailsScreen(
                 taskId = taskId,
                 viewModel = taskViewModel,
                 onBack = { navController.popBackStack() },
@@ -57,7 +57,7 @@ fun TaskNavGraph(
             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
         ) { backStackEntry ->
             val taskId = backStackEntry.arguments?.getString("taskId") ?: ""
-            EditTaskScreen(
+            com.gpproject.adhera.treatment.todo_list.screens.EditTaskScreen(
                 taskId = taskId,
                 viewModel = taskViewModel,
                 onBack = { navController.popBackStack() }

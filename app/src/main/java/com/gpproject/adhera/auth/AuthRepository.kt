@@ -132,6 +132,19 @@ class FirebaseRepository(
         return auth.currentUser?.uid ?: ""
     }
 
+    suspend fun getCurrentUserRole(): String? {
+
+        val uid = getCurrentUserId()
+
+        if (uid.isBlank()) return null
+
+        return firestore.collection("users")
+            .document(uid)
+            .get()
+            .await()
+            .getString("role")
+    }
+
     fun logout() {
 
         auth.signOut()

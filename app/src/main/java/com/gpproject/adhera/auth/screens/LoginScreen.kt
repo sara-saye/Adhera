@@ -20,7 +20,7 @@ import com.gpproject.adhera.auth.AuthViewModel
 @Composable
 fun LoginScreen(
 
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (String?) -> Unit,
 
     onNavigateToSignup: () -> Unit,
 

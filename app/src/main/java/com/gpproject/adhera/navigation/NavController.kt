@@ -22,7 +22,7 @@
 //import com.gpproject.adhera.ui.screens.treatment.games.EbbAndFlowHowToPlayScreen
 //import com.gpproject.adhera.ui.screens.treatment.todo_list.*
 //import com.gpproject.adhera.viewmodels.EbbAndFlowViewModel
-//import com.gpproject.adhera.treatment.treatment.todo_list.TaskViewModel
+//import com.gpproject.adhera.treatment.treatment.todo_list.screens.TaskViewModel
 //import androidx.lifecycle.viewmodel.compose.viewModel
 //
 //@Composable
@@ -274,9 +274,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 
-import com.gpproject.adhera.treatment.treatment.habit_tracker.habits.NewHabitScreen
-import com.gpproject.adhera.treatment.treatment.habit_tracker.reminders.RemindersScreen
-import com.gpproject.adhera.treatment.treatment.habit_tracker.stats.PerformanceAnalyticsScreen
+import com.gpproject.adhera.treatment.habit_tracker.habits.NewHabitScreen
+import com.gpproject.adhera.treatment.habit_tracker.reminders.RemindersScreen
+import com.gpproject.adhera.treatment.habit_tracker.stats.PerformanceAnalyticsScreen
 
 // ================= Bottom Navigation =================
 

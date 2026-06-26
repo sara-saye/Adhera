@@ -161,7 +161,7 @@ class AuthViewModel : ViewModel() {
 
     fun login(
 
-        onSuccess: () -> Unit
+        onSuccess: (String?) -> Unit
     ) {
 
         if (!validateLogin()) return
@@ -180,11 +180,13 @@ class AuthViewModel : ViewModel() {
 
             result.onSuccess {
 
+                val role = repository.getCurrentUserRole()
+
                 _state.value = _state.value.copy(
                     isLoading = false
                 )
 
-                onSuccess()
+                onSuccess(role)
             }
 
             result.onFailure {

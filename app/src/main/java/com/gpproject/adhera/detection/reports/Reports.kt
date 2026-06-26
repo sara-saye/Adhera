@@ -5,6 +5,8 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -27,6 +29,8 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.gpproject.adhera.R
 import com.gpproject.adhera.detection.datastore.AdheraDataStore
+import com.gpproject.adhera.doctor.data.DoctorViewModel
+import com.gpproject.adhera.doctor.data.PatientEntity
 import com.gpproject.adhera.ui.components.*
 import com.gpproject.adhera.ui.theme.*
 
@@ -34,16 +38,40 @@ import com.gpproject.adhera.ui.theme.*
 
 @Composable
 fun DetectionResultsScreen(
-    onDone: () -> Unit
+    onDone: () -> Unit,
+    doctorViewModel: DoctorViewModel? = null,
+    onReturnHome: () -> Unit = onDone,
+    onNewTest: () -> Unit = onDone
 ) {
     val context = LocalContext.current
     val dataStore = remember { AdheraDataStore(context) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var saveStep by remember { mutableStateOf(ResultSaveStep.Choose) }
+    var patientName by remember { mutableStateOf("") }
 
     val viewModel: DetectionResultsViewModel = viewModel(
         factory = DetectionResultsViewModelFactory(dataStore)
     )
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val saveState by doctorViewModel?.saveState?.collectAsStateWithLifecycle()
+        ?: remember { mutableStateOf(null) }
+    val patients by doctorViewModel?.patients?.collectAsStateWithLifecycle()
+        ?: remember { mutableStateOf(emptyList()) }
+
+    LaunchedEffect(saveState?.successMessage) {
+        val message = saveState?.successMessage ?: return@LaunchedEffect
+        saveStep = ResultSaveStep.Saved
+        snackbarHostState.showSnackbar(message)
+        doctorViewModel?.clearSaveMessage()
+    }
+
+    LaunchedEffect(saveState?.errorMessage) {
+        val message = saveState?.errorMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        doctorViewModel?.clearSaveMessage()
+    }
 
     if (uiState.isLoading) {
         Box(
@@ -57,14 +85,18 @@ fun DetectionResultsScreen(
         return
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
-            .adheraScreenPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .adheraScreenPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+        ) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Header
@@ -195,11 +227,217 @@ fun DetectionResultsScreen(
         AnimatedEntrance(delayMillis = 500) {
             PrimaryButton(
                 text = "Done & Save Results",
-                onClick = onDone
+                onClick = {
+                    if (doctorViewModel == null) {
+                        onDone()
+                    } else {
+                        showSaveDialog = true
+                        saveStep = ResultSaveStep.Choose
+                    }
+                }
             )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
+    }
+
+    if (showSaveDialog && doctorViewModel != null) {
+        SaveResultDialog(
+            step = saveStep,
+            patients = patients,
+            patientName = patientName,
+            isSaving = saveState?.isSaving == true,
+            resultSummary = uiState.toDoctorResultSummary(),
+            onDismiss = {
+                if (saveState?.isSaving != true) {
+                    showSaveDialog = false
+                    patientName = ""
+                }
+            },
+            onExistingPatient = { saveStep = ResultSaveStep.ExistingPatient },
+            onNewPatient = { saveStep = ResultSaveStep.NewPatient },
+            onPatientNameChange = { patientName = it },
+            onSaveExisting = { patient ->
+                doctorViewModel.saveResultForExistingPatient(
+                    patientId = patient.patientId,
+                    testType = "ADHD Detection",
+                    testResult = uiState.toDoctorResultSummary()
+                )
+            },
+            onSaveNew = {
+                doctorViewModel.createPatientAndSaveResult(
+                    patientName = patientName,
+                    testType = "ADHD Detection",
+                    testResult = uiState.toDoctorResultSummary()
+                )
+            },
+            onReturnHome = onReturnHome,
+            onNewTest = onNewTest
+        )
+    }
+}
+
+private enum class ResultSaveStep {
+    Choose,
+    ExistingPatient,
+    NewPatient,
+    Saved
+}
+
+@Composable
+private fun SaveResultDialog(
+    step: ResultSaveStep,
+    patients: List<PatientEntity>,
+    patientName: String,
+    isSaving: Boolean,
+    resultSummary: String,
+    onDismiss: () -> Unit,
+    onExistingPatient: () -> Unit,
+    onNewPatient: () -> Unit,
+    onPatientNameChange: (String) -> Unit,
+    onSaveExisting: (PatientEntity) -> Unit,
+    onSaveNew: () -> Unit,
+    onReturnHome: () -> Unit,
+    onNewTest: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = when (step) {
+                    ResultSaveStep.Choose -> "Save test result"
+                    ResultSaveStep.ExistingPatient -> "Choose patient"
+                    ResultSaveStep.NewPatient -> "New patient"
+                    ResultSaveStep.Saved -> "Result saved"
+                }
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                when (step) {
+                    ResultSaveStep.Choose -> {
+                        Text("هل تريد حفظ نتيجة هذا الاختبار لمريض موجود أم إنشاء مريض جديد؟")
+                        Text(resultSummary, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    }
+                    ResultSaveStep.ExistingPatient -> {
+                        if (patients.isEmpty()) {
+                            Text("No patients yet", color = TextSecondary)
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.heightIn(max = 280.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(patients, key = { it.patientId }) { patient ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable(enabled = !isSaving) { onSaveExisting(patient) },
+                                        colors = CardDefaults.cardColors(containerColor = CardBackground)
+                                    ) {
+                                        Text(
+                                            text = patient.patientName,
+                                            modifier = Modifier.padding(14.dp),
+                                            color = NavyPrimary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    ResultSaveStep.NewPatient -> {
+                        OutlinedTextField(
+                            value = patientName,
+                            onValueChange = onPatientNameChange,
+                            label = { Text("Patient name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isSaving
+                        )
+                    }
+                    ResultSaveStep.Saved -> {
+                        Text("Test result saved successfully.")
+                    }
+                }
+
+                if (isSaving) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Text("Saving...", color = TextSecondary)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            when (step) {
+                ResultSaveStep.Choose -> {
+                    TextButton(onClick = onExistingPatient, enabled = !isSaving) {
+                        Text("Existing Patient")
+                    }
+                }
+                ResultSaveStep.NewPatient -> {
+                    TextButton(
+                        onClick = onSaveNew,
+                        enabled = !isSaving && patientName.isNotBlank()
+                    ) {
+                        Text("Save")
+                    }
+                }
+                ResultSaveStep.Saved -> {
+                    TextButton(onClick = onReturnHome) {
+                        Text("Back to Home")
+                    }
+                }
+                ResultSaveStep.ExistingPatient -> {}
+            }
+        },
+        dismissButton = {
+            when (step) {
+                ResultSaveStep.Choose -> {
+                    TextButton(onClick = onNewPatient, enabled = !isSaving) {
+                        Text("New Patient")
+                    }
+                }
+                ResultSaveStep.ExistingPatient,
+                ResultSaveStep.NewPatient -> {
+                    TextButton(onClick = onDismiss, enabled = !isSaving) {
+                        Text("Cancel")
+                    }
+                }
+                ResultSaveStep.Saved -> {
+                    TextButton(onClick = onNewTest) {
+                        Text("New Test")
+                    }
+                }
+            }
+        }
+    )
+}
+
+private fun DetectionResultsUiState.toDoctorResultSummary(): String {
+    val modelLines = modelResults.joinToString(separator = "\n") { result ->
+        "${result.title}: ${result.percentage}%"
+    }
+
+    return buildString {
+        append("Final ADHD probability: ")
+        append(finalProbability)
+        append("%")
+        if (modelLines.isNotBlank()) {
+            append("\n")
+            append(modelLines)
+        }
     }
 }
 
