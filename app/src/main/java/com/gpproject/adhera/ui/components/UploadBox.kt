@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.gpproject.adhera.ui.theme.*
 
@@ -67,8 +68,36 @@ fun UploadBox(
             }
 
             if (uploadedFileName == null) {
-                SecondaryButton(text = "Upload", onClick = onUploadClick, modifier = Modifier.width(90.dp))
+                SecondaryButton(text = "Upload", onClick = onUploadClick, modifier = Modifier.width(100.dp))
             }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun UploadBoxEmptyPreview() {
+    AdheraTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            UploadBox(
+                label = "Medical Report",
+                uploadedFileName = null,
+                onUploadClick = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun UploadBoxUploadedPreview() {
+    AdheraTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            UploadBox(
+                label = "Medical Report",
+                uploadedFileName = "report_2023.pdf",
+                onUploadClick = {}
+            )
         }
     }
 }

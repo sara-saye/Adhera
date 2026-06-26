@@ -6,7 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.gpproject.adhera.data.model.Gender
+import com.gpproject.adhera.auth.Gender
 import com.gpproject.adhera.ui.theme.TextPrimary
 
 @Composable

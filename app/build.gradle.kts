@@ -44,6 +44,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -92,4 +93,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     //Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    //Data Store
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    // ML Kit Face Detection
+    implementation("com.google.mlkit:face-detection:16.1.6")
+// CameraX
+    implementation("androidx.camera:camera-camera2:1.3.x")
+    implementation("androidx.camera:camera-lifecycle:1.3.x")
+    implementation("androidx.camera:camera-video:1.3.x")
 }
