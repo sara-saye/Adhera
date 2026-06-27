@@ -13,7 +13,7 @@ import androidx.room.RoomDatabase
     exportSchema = false
 )
 
-abstract class AppDatabase : RoomDatabase() {
+abstract class ChatbotDatabase : RoomDatabase() {
 
     abstract fun chatDao(): ChatDao
 }

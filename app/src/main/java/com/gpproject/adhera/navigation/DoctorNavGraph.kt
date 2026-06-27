@@ -36,7 +36,7 @@ fun NavGraphBuilder.doctorNavGraph(
                 onOpenTodo = { navController.navigate(Routes.TODO) },
                 onOpenHabitTracker = { navController.navigate(Routes.HABIT_TRACKER) },
                 onOpenChatbot = { navController.navigate(Routes.CHATBOT) },
-                onOpenFocusGames = { navController.navigate(Routes.EBB_INTRO) },
+                onOpenFocusGames = { navController.navigate(Routes.FOCUS_GAMES_MENU) },
             )
         }
     }

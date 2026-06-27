@@ -13,7 +13,7 @@ import com.gpproject.adhera.treatment.habit_tracker.HabitRepository
  *
  * الحل: object عادي (Singleton طبيعي في Kotlin) بيتهيّأ بـ Context عادي
  * (Activity context أو Application context أو أي context تاني)، وده كافي لأن
- * AppDatabase.getDatabase() بيستخدم context.applicationContext من جوّه
+ * HabitDatabase.getDatabase() بيستخدم context.applicationContext من جوّه
  * فمش محتاجين Application context بالتحديد.
  *
  * أي Composable في الفيتشر بيستخدم:
@@ -32,7 +32,7 @@ object HabitServiceLocator {
     fun getRepository(context: Context): HabitRepository {
         return repositoryInstance ?: synchronized(this) {
             repositoryInstance ?: run {
-                val database = AppDatabase.getDatabase(context.applicationContext)
+                val database = HabitDatabase.getDatabase(context.applicationContext)
                 HabitRepository(database.habitDao()).also { repositoryInstance = it }
             }
         }

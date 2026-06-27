@@ -137,6 +137,7 @@ fun DoctorHomeScreen(
                     onOpenFocusTest = onOpenFocusTest,
                     onOpenAssessment = onOpenAssessment
                 )
+
                 DoctorTab.Patients -> PatientsScreen(doctorViewModel)
                 DoctorTab.TreatmentTools -> TreatmentHomeScreen(
                     onOpenTodo = onOpenTodo,
@@ -158,11 +159,36 @@ private fun DetectionTypesTab(
     onOpenAssessment: () -> Unit
 ) {
     val cards = listOf(
-        DoctorActionCard("Full Detection Flow", "Run the existing guided detection sequence.", Icons.Default.Biotech, onOpenFullDetection),
-        DoctorActionCard("EEG Analysis", "Open the existing EEG detection screen.", Icons.Default.Psychology, onOpenEeg),
-        DoctorActionCard("MRI Scan", "Open the existing MRI detection screen.", Icons.Default.Visibility, onOpenMri),
-        DoctorActionCard("Focus Test", "Open the existing focus observation test.", Icons.Default.Videocam, onOpenFocusTest),
-        DoctorActionCard("Questionnaire", "Open the existing assessment screen.", Icons.Default.Extension, onOpenAssessment)
+        DoctorActionCard(
+            "Full Detection Flow",
+            "Run the existing guided detection sequence.",
+            Icons.Default.Biotech,
+            onOpenFullDetection
+        ),
+        DoctorActionCard(
+            "EEG Analysis",
+            "Open the existing EEG detection screen.",
+            Icons.Default.Psychology,
+            onOpenEeg
+        ),
+        DoctorActionCard(
+            "MRI Scan",
+            "Open the existing MRI detection screen.",
+            Icons.Default.Visibility,
+            onOpenMri
+        ),
+        DoctorActionCard(
+            "Focus Test",
+            "Open the existing focus observation test.",
+            Icons.Default.Videocam,
+            onOpenFocusTest
+        ),
+        DoctorActionCard(
+            "Questionnaire",
+            "Open the existing assessment screen.",
+            Icons.Default.Extension,
+            onOpenAssessment
+        )
     )
     ActionCardList(cards)
 }
@@ -175,10 +201,30 @@ fun TreatmentHomeScreen(
     onOpenFocusGames: () -> Unit
 ) {
     val cards = listOf(
-        DoctorActionCard("To-Do Treatment", "Open the existing task treatment tool.", Icons.Default.Extension, onOpenTodo),
-        DoctorActionCard("Habit Tracker", "Open the existing habit treatment screens.", Icons.Default.Healing, onOpenHabitTracker),
-        DoctorActionCard("Chatbot", "Open the existing support chatbot.", Icons.Default.Psychology, onOpenChatbot),
-        DoctorActionCard("Focus Games", "Open the existing treatment games menu.", Icons.Default.Biotech, onOpenFocusGames)
+        DoctorActionCard(
+            "To-Do Treatment",
+            "Open the existing task treatment tool.",
+            Icons.Default.Extension,
+            onOpenTodo
+        ),
+        DoctorActionCard(
+            "Habit Tracker",
+            "Open the existing habit treatment screens.",
+            Icons.Default.Healing,
+            onOpenHabitTracker
+        ),
+        DoctorActionCard(
+            "Chatbot",
+            "Open the existing support chatbot.",
+            Icons.Default.Psychology,
+            onOpenChatbot
+        ),
+        DoctorActionCard(
+            "Focus Games",
+            "Open the existing treatment games menu.",
+            Icons.Default.Biotech,
+            onOpenFocusGames
+        )
     )
     ActionCardList(cards)
 }
@@ -207,7 +253,11 @@ private fun ActionCardList(cards: List<DoctorActionCard>) {
                     Icon(card.icon, contentDescription = null, tint = NavyPrimary)
                     Column(Modifier.weight(1f)) {
                         Text(card.title, color = NavyPrimary, fontWeight = FontWeight.Bold)
-                        Text(card.description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            card.description,
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
@@ -321,7 +371,11 @@ private fun PatientCard(
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete patient", tint = Color(0xFFB3261E))
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete patient",
+                        tint = Color(0xFFB3261E)
+                    )
                 }
             }
 
@@ -336,9 +390,17 @@ private fun PatientCard(
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
                         ) {
-                            Text(result.testType, color = NavyPrimary, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                result.testType,
+                                color = NavyPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
                             Text(result.testResult, color = TextSecondary)
-                            Text(formatDate(result.createdAt), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                formatDate(result.createdAt),
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.labelSmall
+                            )
                         }
                     }
                 }

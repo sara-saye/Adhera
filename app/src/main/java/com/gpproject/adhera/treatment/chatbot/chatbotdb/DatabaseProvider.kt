@@ -7,19 +7,19 @@ import androidx.room.Room
 object DatabaseProvider {
 
     @Volatile
-    private var INSTANCE: AppDatabase? = null
+    private var INSTANCE: ChatbotDatabase? = null
 
     fun getDatabase(
         context: Context
-    ): AppDatabase {
+    ): ChatbotDatabase {
 
         return INSTANCE ?: synchronized(this) {
 
             val instance =
                 Room.databaseBuilder(
                     context.applicationContext,
-                    AppDatabase::class.java,
-                    "adhera_database"
+                    ChatbotDatabase::class.java,
+                    "chatbot_database"
                 )
                     .fallbackToDestructiveMigration()
                     .build()

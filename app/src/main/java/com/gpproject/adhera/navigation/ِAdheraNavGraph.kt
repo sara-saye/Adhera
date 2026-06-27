@@ -53,7 +53,7 @@ import com.gpproject.adhera.treatment.games.ebbandflow.EbbAndFlowScreen
 import com.gpproject.adhera.treatment.todo_list.data.TaskRepositoryImpl
 import com.gpproject.adhera.treatment.todo_list.screens.TaskViewModel
 import com.gpproject.adhera.treatment.todo_list.screens.TaskViewModelFactory
-import com.gpproject.adhera.treatment.todo_list.tododb.AppDatabase
+import com.gpproject.adhera.treatment.todo_list.tododb.TodoDatabase
 import com.gpproject.adhera.treatment.todo_list.usecase.ClearCompletedTasksUseCase
 import com.gpproject.adhera.treatment.todo_list.usecase.DeleteTaskUseCase
 import com.gpproject.adhera.treatment.todo_list.usecase.GetAllTasksUseCase
@@ -160,7 +160,7 @@ object Routes {
 fun AdheraNavGraph(
     navController: NavHostController = rememberNavController()
 ) {
-    val context = LocalContext.current
+    val context = LocalContext.current.applicationContext
 
     var doctorTestResult by remember {
         mutableStateOf("")
@@ -393,8 +393,8 @@ fun AdheraNavGraph(
 
         // ── To-Do ─────────────────────────────────────────────────────────────
         composable(Routes.TODO) {
-            val taskDatabase   = remember { AppDatabase.getDatabase(context) }
-            val taskRepository = remember { TaskRepositoryImpl(taskDatabase.taskDao) }
+            val taskDatabase   = remember { TodoDatabase.getDatabase(context) }
+            val taskRepository = remember { TaskRepositoryImpl(taskDatabase.taskDao()) }
             val taskUseCases   = remember {
                 TaskUseCases(
                     getAllTasks          = GetAllTasksUseCase(taskRepository),

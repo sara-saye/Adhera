@@ -7,20 +7,20 @@ import android.content.Context
 import com.gpproject.adhera.treatment.habit_tracker.Habit
 
 @Database(entities = [Habit::class], version = 1, exportSchema = false)
-abstract class AppDatabase : RoomDatabase() {
+abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 
     companion object {
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var INSTANCE: HabitDatabase? = null
 
-        fun getDatabase(context: Context): AppDatabase {
+        fun getDatabase(context: Context): HabitDatabase {
             // لو الـ instance جاهز من قبل، استخدمه مباشرة (تجنب الدخول في synchronized كل مرة)
             return INSTANCE ?: synchronized(this) {
                 // إعادة الفحص جوه الـ synchronized لمنع إنشاء أكتر من نسخة في حالة التزامن (Thread Safety)
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
-                    AppDatabase::class.java,
+                    HabitDatabase::class.java,
                     "bloom_habits_db"
                 )
                     // ✅ السبب الأساسي للكراش: لو تغيّر شكل الجدول (schema) بدون migration
