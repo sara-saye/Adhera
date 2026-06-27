@@ -25,6 +25,7 @@ Adhera is a comprehensive Android application designed to assist in the detectio
 ### Networking & API
 - **Retrofit & OkHttp**: For RESTful API communication and network logging.
 - **Gemini AI SDK**: Powering the intelligent chatbot functionality.
+- **FastAPI Backend**: The application communicates with a dedicated FastAPI server for ML model predictions. Repo: [Adhera_Server](https://github.com/sara-saye/Adhera_Server.git)
 
 ### Backend & Storage
 - **Firebase**:
@@ -46,15 +47,24 @@ Adhera is a comprehensive Android application designed to assist in the detectio
 
 ## ⚙️ Setup & Installation
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/Adhera.git
-   ```
-2. **Open in Android Studio**:
+1. **Clone the repositories**:
+
+   - FastAPI Backend:
+     ```bash
+     git clone https://github.com/sara-saye/Adhera_Server.git
+     ```
+   - Android App:
+     ```bash
+     git clone https://github.com/your-username/Adhera.git
+     ```
+2. **Setup FastAPI Server**:
+   - Follow the instructions in the [Adhera_Server](https://github.com/sara-saye/Adhera_Server.git) repository's `README.md` to set up and run the backend.
+   - Ensure the server is running and accessible before proceeding to the next steps.
+3. **Open in Android Studio**:
    - File > Open > Select the `Adhera4` folder.
-3. **Configure Firebase**:
+4. **Configure Firebase**:
    - Add your `google-services.json` file to the `app/` directory.
-4. **Build & Run**:
+5. **Build & Run**:
    - Synchronize Gradle and run the app on an emulator or physical device (Min SDK 26).
 
 ## 📁 Project Structure
