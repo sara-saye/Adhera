@@ -7,23 +7,23 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [_root_ide_package_.com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity::class],
-    version = 1,
+    entities = [TaskEntity::class],
+    version = 2,
     exportSchema = false
 )
-@TypeConverters(_root_ide_package_.com.gpproject.adhera.treatment.todo_list.tododb.TaskConverters::class)
+@TypeConverters(TaskConverters::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract val taskDao: com.gpproject.adhera.treatment.todo_list.tododb.TaskDao
+    abstract val taskDao: TaskDao
 
     companion object {
         @Volatile
-        private var INSTANCE: com.gpproject.adhera.treatment.todo_list.tododb.AppDatabase? = null
+        private var INSTANCE: AppDatabase? = null
 
-        fun getDatabase(context: Context): com.gpproject.adhera.treatment.todo_list.tododb.AppDatabase {
+        fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
-                    _root_ide_package_.com.gpproject.adhera.treatment.todo_list.tododb.AppDatabase::class.java,
+                    AppDatabase::class.java,
                     "adhera_database" // اسم ملف الداتابيز في الميموري
                 ).build()
                 INSTANCE = instance

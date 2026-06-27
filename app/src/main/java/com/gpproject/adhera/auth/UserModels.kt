@@ -4,7 +4,7 @@ sealed class UserRole(val value: String) {
 
     data object Doctor : UserRole("Doctor")
 
-    data object AdultChild : UserRole("Adult/Child")
+    data object AdultChild : UserRole("AdultChild")
 
     data object Parent : UserRole("Parent")
 }

@@ -1,6 +1,5 @@
 package com.gpproject.adhera.treatment.todo_list.tododb
 
-
 import androidx.room.TypeConverter
 
 class TaskConverters {

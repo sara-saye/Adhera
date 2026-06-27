@@ -195,17 +195,7 @@ fun SynapticFlowObservationScreen(
         phase        = Phase.FEEDBACK
     }
 
-    // ── Loading overlay while APIs are running ────────────────────────────────
-    if (submitState is FocusTestViewModel.SubmitState.Loading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator()
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Analyzing results...", color = TextSecondary)
-            }
-        }
-        return   // don't render the test UI while uploading
-    }
+
 
     // ── Main UI ───────────────────────────────────────────────────────────────
     Column(
@@ -340,102 +330,5 @@ fun SynapticFlowObservationScreen(
             }
         }
         Spacer(modifier = Modifier.height(32.dp))
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Unchanged SynapticFlowTestScreen
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-fun SynapticFlowTestScreen(
-    stageIndex: Int = 2,
-    totalStages: Int = 3,
-    testImage: Int = R.drawable.photo_3,
-    onBack: () -> Unit,
-    onAnswer: (Boolean) -> Unit
-) {
-    var isReady by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppBackground)
-            .adheraScreenPadding()
-    ) {
-        HeaderWithBack(
-            title    = "Focus Test",
-            onBack   = onBack,
-            progress = stageIndex.toFloat() / totalStages.toFloat(),
-            stepText = "Stage $stageIndex of $totalStages"
-        )
-
-        if (!isReady) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    AnimatedEntrance(delayMillis = 100) {
-                        Text(
-                            text       = "Visual Recognition",
-                            style      = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color      = TextPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    AnimatedEntrance(delayMillis = 150) {
-                        Text(
-                            text      = "We'll show you an image. Tell us if you've seen it in the previous step.",
-                            textAlign = TextAlign.Center,
-                            color     = TextSecondary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(32.dp))
-                    AnimatedEntrance(delayMillis = 200) {
-                        PrimaryButton(text = "I'm Ready!", onClick = { isReady = true })
-                    }
-                }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(20.dp))
-                AnimatedEntrance(delayMillis = 100) {
-                    Text(
-                        text       = "Have you seen this image before?",
-                        style      = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        textAlign  = TextAlign.Center,
-                        color      = TextPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.height(30.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1.1f),
-                    shape    = RoundedCornerShape(28.dp),
-                    color    = CardBackground,
-                    border   = BorderStroke(1.dp, DividerColor)
-                ) {
-                    Image(
-                        painter      = painterResource(id = testImage),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    PrimaryButton(text = "Yes", onClick = { onAnswer(true) },  modifier = Modifier.weight(1f))
-                    SecondaryButton(text = "No", onClick = { onAnswer(false) }, modifier = Modifier.weight(1f))
-                }
-            }
-        }
     }
 }

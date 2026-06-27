@@ -437,8 +437,8 @@ fun RoleSelectionScreen(onRoleSelected: (String) -> Unit) {
                 emoji = "🙋",
                 title = "Adult / Child",
                 subtitle = "I'm here for myself or\nfor my own assessment",
-                selected = selectedRole == "Adult/Child",
-                onClick = { selectedRole = "Adult/Child" }
+                selected = selectedRole == "AdultChild",
+                onClick = { selectedRole = "AdultChild" }
             )
         }
 
