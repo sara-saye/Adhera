@@ -33,6 +33,8 @@ import com.gpproject.adhera.doctor.data.DoctorViewModel
 import com.gpproject.adhera.doctor.data.PatientEntity
 import com.gpproject.adhera.ui.components.*
 import com.gpproject.adhera.ui.theme.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 // ====================== Screen ======================
 
@@ -45,7 +47,9 @@ fun DetectionResultsScreen(
 ) {
     val context = LocalContext.current
     val dataStore = remember { AdheraDataStore(context) }
+    val reportHistoryRepository = remember { DetectionReportHistoryRepository() }
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var showSaveDialog by remember { mutableStateOf(false) }
     var saveStep by remember { mutableStateOf(ResultSaveStep.Choose) }
     var patientName by remember { mutableStateOf("") }
@@ -229,7 +233,20 @@ fun DetectionResultsScreen(
                 text = "Done & Save Results",
                 onClick = {
                     if (doctorViewModel == null) {
-                        onDone()
+                        scope.launch {
+                            val savedCount = dataStore.reportSaveCount.first()
+                            if (savedCount == 0) {
+                                dataStore.markReportSaved()
+                            } else {
+                                reportHistoryRepository.saveAdditionalReport(uiState)
+                                    .onSuccess { reportNumber ->
+                                        dataStore.markReportSaved()
+                                    }
+                                    .onFailure { error ->
+                                    }
+                            }
+                            onDone()
+                        }
                     } else {
                         showSaveDialog = true
                         saveStep = ResultSaveStep.Choose

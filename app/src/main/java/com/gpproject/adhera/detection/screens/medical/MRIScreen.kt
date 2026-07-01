@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gpproject.adhera.ui.components.UploadBox
+import com.gpproject.adhera.ui.components.adheraScreenPadding
 import com.gpproject.adhera.ui.theme.*
 import java.io.File
 
@@ -62,8 +63,7 @@ fun MriScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
+            .adheraScreenPadding()
             .background(AppBackground)
             .padding(24.dp)
     ) {

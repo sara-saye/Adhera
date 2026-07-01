@@ -9,8 +9,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlin.math.roundToInt
 
-// ====================== UI Model ======================
-
 data class ModelResult(
     val title: String,
     val percentage: Int,
@@ -29,9 +27,88 @@ data class DetectionResultsUiState(
     val isLoading: Boolean = true,
     val modelResults: List<ModelResult> = emptyList(),
     val finalProbability: Int = 0
-)
+) {
+    companion object {
+        fun fromRawResults(
+            questionnaire: Triple<String, Int, String?>,
+            mriStatus: String,
+            mriPrediction: Int,
+            mriProbability: Double,
+            eegStatus: String,
+            eegPrediction: Int,
+            eegProbability: Double,
+            facialStatus: String,
+            facialEngagementLevel: Int,
+            facialConfidence: Double,
+            eyeTrackingStatus: String,
+            eyeTrackingPrediction: Int,
+            eyeTrackingProbability: Double
+        ): DetectionResultsUiState {
+            val results = mutableListOf<ModelResult>()
 
-// ====================== ViewModel ======================
+            if (questionnaire.first.isCompletedStatus() && questionnaire.second != -1) {
+                results += ModelResult(
+                    title = "Questionnaire",
+                    percentage = if (questionnaire.second == 1) 100 else 0,
+                    iconType = ModelIconType.QUESTIONNAIRE
+                )
+            }
+
+            if (isOptionalMedicalResultComplete(mriStatus, mriPrediction, mriProbability)) {
+                results += ModelResult(
+                    title = "MRI Scan",
+                    percentage = mriProbability.roundToInt().coerceIn(0, 100),
+                    iconType = ModelIconType.MRI
+                )
+            }
+
+            if (isOptionalMedicalResultComplete(eegStatus, eegPrediction, eegProbability)) {
+                results += ModelResult(
+                    title = "EEG Analysis",
+                    percentage = eegProbability.roundToInt().coerceIn(0, 100),
+                    iconType = ModelIconType.EEG
+                )
+            }
+
+            if (facialStatus.isCompletedStatus() && facialEngagementLevel != -1) {
+                results += ModelResult(
+                    title = "Engagement",
+                    percentage = (facialConfidence * 100).roundToInt().coerceIn(0, 100),
+                    iconType = ModelIconType.ENGAGEMENT
+                )
+            }
+
+            if (eyeTrackingStatus.isCompletedStatus() && eyeTrackingPrediction != -1) {
+                results += ModelResult(
+                    title = "Focus Persistence",
+                    percentage = eyeTrackingProbability.roundToInt().coerceIn(0, 100),
+                    iconType = ModelIconType.EYE_TRACKING
+                )
+            }
+
+            return DetectionResultsUiState(
+                isLoading = false,
+                modelResults = results,
+                finalProbability = if (results.isEmpty()) 0 else results.sumOf { it.percentage } / results.size
+            )
+        }
+    }
+}
+
+private fun String.isCompletedStatus(): Boolean {
+    val normalized = trim().lowercase()
+    return normalized.isNotBlank()
+        && normalized !in setOf("default", "empty", "null", "none", "not_performed", "not performed", "skipped")
+}
+
+private fun isOptionalMedicalResultComplete(
+    status: String,
+    prediction: Int,
+    probability: Double
+): Boolean {
+    return status.isCompletedStatus()
+            && prediction != -1
+}
 
 class DetectionResultsViewModel(
     private val dataStore: AdheraDataStore
@@ -44,121 +121,27 @@ class DetectionResultsViewModel(
         dataStore.facialResult,
         dataStore.eyeTrackingResult
     ) { questionnaire, mri, eeg, facial, eyeTracking ->
-
-        val results = mutableListOf<ModelResult>()
-
-        // ================= Questionnaire =================
-        if (
-            questionnaire.first.isNotEmpty()
-            && questionnaire.second != -1
-        ) {
-
-            // API بيرجع prediction فقط
-            val pct =
-                if (questionnaire.second == 1) 100
-                else 0
-
-            results += ModelResult(
-                title = "Questionnaire",
-                percentage = pct,
-                iconType = ModelIconType.QUESTIONNAIRE
-            )
-        }
-
-        // ================= MRI =================
-        if (
-            mri.status.isNotEmpty()
-            && mri.prediction != -1
-        ) {
-
-            val pct = mri.probability
-                .roundToInt()
-                .coerceIn(0,100)
-
-            results += ModelResult(
-                title = "MRI Scan",
-                percentage = pct,
-                iconType = ModelIconType.MRI
-            )
-        }
-
-        // ================= EEG =================
-        if (
-            eeg.status.isNotEmpty()
-            && eeg.prediction != -1
-        ) {
-
-            val pct = eeg.probability
-                .roundToInt()
-                .coerceIn(0,100)
-
-            results += ModelResult(
-                title = "EEG Analysis",
-                percentage = pct,
-                iconType = ModelIconType.EEG
-            )
-        }
-
-        // ================= Facial =================
-        if (
-            facial.status.isNotEmpty()
-            && facial.engagementLevel != -1
-        ) {
-
-            // confidence من 0→1
-            val pct = (facial.confidence * 100)
-                .roundToInt()
-                .coerceIn(0,100)
-
-            results += ModelResult(
-                title = "Engagement",
-                percentage = pct,
-                iconType = ModelIconType.ENGAGEMENT
-            )
-        }
-
-        // ================= Eye Tracking =================
-        if (
-            eyeTracking.status.isNotEmpty()
-            && eyeTracking.prediction != -1
-        ) {
-
-            val pct = eyeTracking.probability
-                .roundToInt()
-                .coerceIn(0,100)
-
-            results += ModelResult(
-                title = "Focus Persistence",
-                percentage = pct,
-                iconType = ModelIconType.EYE_TRACKING
-            )
-        }
-
-        // ================= Final Probability =================
-
-        val finalProbability =
-            if (results.isEmpty()) {
-                0
-            } else {
-                results.sumOf { it.percentage } / results.size
-            }
-
-        DetectionResultsUiState(
-            isLoading = false,
-            modelResults = results,
-            finalProbability = finalProbability
+        DetectionResultsUiState.fromRawResults(
+            questionnaire = questionnaire,
+            mriStatus = mri.status,
+            mriPrediction = mri.prediction,
+            mriProbability = mri.probability,
+            eegStatus = eeg.status,
+            eegPrediction = eeg.prediction,
+            eegProbability = eeg.probability,
+            facialStatus = facial.status,
+            facialEngagementLevel = facial.engagementLevel,
+            facialConfidence = facial.confidence,
+            eyeTrackingStatus = eyeTracking.status,
+            eyeTrackingPrediction = eyeTracking.prediction,
+            eyeTrackingProbability = eyeTracking.probability
         )
-
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = DetectionResultsUiState(
-            isLoading = true
-        )
+        initialValue = DetectionResultsUiState(isLoading = true)
     )
 }
-
-// ====================== Factory ======================
 
 class DetectionResultsViewModelFactory(
     private val dataStore: AdheraDataStore
@@ -168,13 +151,7 @@ class DetectionResultsViewModelFactory(
     override fun <T : ViewModel> create(
         modelClass: Class<T>
     ): T {
-
-        require(
-            modelClass == DetectionResultsViewModel::class.java
-        )
-
-        return DetectionResultsViewModel(
-            dataStore
-        ) as T
+        require(modelClass == DetectionResultsViewModel::class.java)
+        return DetectionResultsViewModel(dataStore) as T
     }
 }

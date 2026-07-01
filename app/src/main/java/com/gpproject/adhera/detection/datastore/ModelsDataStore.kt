@@ -61,6 +61,8 @@ class AdheraDataStore(private val context: Context) {
         val EYE_TRACKING_PREDICTION  = intPreferencesKey("eye_tracking_prediction")
         val EYE_TRACKING_PROBABILITY = doublePreferencesKey("eye_tracking_probability")
         val EYE_TRACKING_MESSAGE     = stringPreferencesKey("eye_tracking_message")
+
+        val REPORT_SAVE_COUNT = intPreferencesKey("report_save_count")
     }
 
     // ======================== Save Functions ========================
@@ -236,6 +238,20 @@ class AdheraDataStore(private val context: Context) {
                 message     = prefs[EYE_TRACKING_MESSAGE]
             )
         }
+
+    val reportSaveCount: Flow<Int> =
+        context.adheraDataStore.data.map { prefs ->
+            prefs[REPORT_SAVE_COUNT] ?: 0
+        }
+
+    suspend fun markReportSaved(): Int {
+        var updatedCount = 0
+        context.adheraDataStore.edit { prefs ->
+            updatedCount = (prefs[REPORT_SAVE_COUNT] ?: 0) + 1
+            prefs[REPORT_SAVE_COUNT] = updatedCount
+        }
+        return updatedCount
+    }
 
     // ======================== Clear ========================
 

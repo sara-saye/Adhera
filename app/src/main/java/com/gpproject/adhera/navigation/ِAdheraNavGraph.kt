@@ -5,11 +5,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,6 +22,7 @@ import androidx.navigation.navArgument
 import com.example.memorymatrix.game.GameStorage
 import com.example.memorymatrix.navigation.NavGraph as MemoryMatrixNavGraph
 import com.example.memorymatrix.viewmodel.GameViewModel
+import com.gpproject.adhera.auth.AuthViewModel
 
 // ── Splash ────────────────────────────────────────────────────────────────────
 import com.gpproject.adhera.ui.screens.splash.AdheraAnimatedSplash
@@ -39,7 +43,6 @@ import com.gpproject.adhera.auth.screens.AccountCreatedScreen
 
 // ── Home ──────────────────────────────────────────────────────────────────────
 import com.gpproject.adhera.ui.screens.home.HomeHubScreen
-import com.gpproject.adhera.navigation.TaskNavGraph
 import com.gpproject.adhera.doctor.data.DoctorViewModel
 import com.gpproject.adhera.treatment.chatbot.ChatBotRepositoryImpl
 import com.gpproject.adhera.treatment.chatbot.ChatBotScreen
@@ -76,7 +79,12 @@ import com.gpproject.adhera.detection.screens.assessment.AssessmentScreen
 import com.gpproject.adhera.detection.screens.assessment.AssessmentViewModel
 import com.gpproject.adhera.detection.reports.DetectionCompleteScreen
 import com.gpproject.adhera.detection.reports.DetectionResultsScreen
+import com.gpproject.adhera.detection.datastore.AdheraDataStore
 import com.gpproject.adhera.doctor.ui.SavePatientResultScreen
+import com.gpproject.adhera.settings.AccountDataScreen
+import com.gpproject.adhera.settings.DiagnosticArchiveScreen
+import com.gpproject.adhera.settings.ProfileManagementScreen
+import com.gpproject.adhera.settings.SettingsDashboardScreen
 import com.gpproject.adhera.treatment.games.ebbandflow.FocusGamesMenuScreen
 
 // =============================================================================
@@ -102,6 +110,10 @@ object Routes {
     const val HOME               = "home"
     const val DOCTOR_HOME        = DoctorRoutes.GRAPH
     const val HABIT_TRACKER      = HabitTrackerRoutes.Graph
+    const val SETTINGS           = "settings"
+    const val ACCOUNT_DATA       = "account_data"
+    const val PROFILE_MANAGEMENT = "profile_management"
+    const val DIAGNOSTIC_ARCHIVE = "diagnostic_archive"
 
     // ── Treatment tools (launched from HomeHubScreen) ─────────────────────────
     const val TODO               = "todo"
@@ -153,6 +165,26 @@ object Routes {
     fun accountCreated(role: String) = "account_created/$role"
 }
 
+// =============================================================================
+//  Helper — checks if the user has already completed detection
+// =============================================================================
+/**
+ * Returns true if at least one detection result exists in the DataStore,
+ * meaning the user already went through the detection flow.
+ */
+private suspend fun hasCompletedDetection(dataStore: AdheraDataStore): Boolean {
+    val facial      = dataStore.facialResult.first()
+    val eyeTracking = dataStore.eyeTrackingResult.first()
+    val eeg         = dataStore.eegResult.first()
+    val mri         = dataStore.mriResult.first()
+    return facial.status.isNotBlank()
+            || eyeTracking.status.isNotBlank()
+            || eeg.status.isNotBlank()
+            || mri.status.isNotBlank()
+}
+
+// =============================================================================
+//  NavGraph
 // =============================================================================
 //  NavGraph
 // =============================================================================
@@ -242,18 +274,24 @@ fun AdheraNavGraph(
 
         // ── Login ─────────────────────────────────────────────────────────────
         composable(Routes.LOGIN) {
+            val dataStore = remember { AdheraDataStore(context) }
+            val scope     = rememberCoroutineScope()
             LoginScreen(
                 onLoginSuccess     = { role ->
                     if (role == UserRole.Doctor.value) {
-                        // Doctor → goes straight to DoctorHome
+                        // Doctor → always goes to DoctorHome
                         navController.navigate(Routes.DOCTOR_HOME) {
                             popUpTo(Routes.ROLE_SELECTION) { inclusive = true }
                         }
                     } else {
-                        // Adult/Child/Parent → goes straight to Detection flow
+                        // Adult/Child/Parent → check if they already did detection
                         detectionStartedByDoctor = false
-                        navController.navigate(Routes.DETECTION_WELCOME) {
-                            popUpTo(Routes.ROLE_SELECTION) { inclusive = true }
+                        scope.launch {
+                            val alreadyDone = hasCompletedDetection(dataStore)
+                            val destination = if (alreadyDone) Routes.HOME else Routes.DETECTION_WELCOME
+                            navController.navigate(destination) {
+                                popUpTo(Routes.ROLE_SELECTION) { inclusive = true }
+                            }
                         }
                     }
                 },
@@ -275,7 +313,7 @@ fun AdheraNavGraph(
             arguments = listOf(navArgument("role") { type = NavType.StringType })
         ) { backStack ->
             val role = backStack.arguments?.getString("role") ?: "AdultChild"
-            val authViewModel: com.gpproject.adhera.auth.AuthViewModel = viewModel()
+            val authViewModel: AuthViewModel = viewModel()
             val authState by authViewModel.state.collectAsState()
             EmailVerificationScreen(
                 email      = authState.email,
@@ -349,6 +387,50 @@ fun AdheraNavGraph(
                         Routes.FOCUS_GAMES_MENU
                     )
                 },
+                onNavigateToSettings = {
+                    navController.navigate(Routes.SETTINGS)
+                },
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsDashboardScreen(
+                onBack = { navController.popBackStack() },
+                onAccountData = { navController.navigate(Routes.ACCOUNT_DATA) }
+            )
+        }
+
+        composable(Routes.ACCOUNT_DATA) {
+            AccountDataScreen(
+                onBack = { navController.popBackStack() },
+                onProfileManagement = { navController.navigate(Routes.PROFILE_MANAGEMENT) },
+                onDiagnosticArchive = { navController.navigate(Routes.DIAGNOSTIC_ARCHIVE) },
+                onRestartDiagnostic = {
+                    detectionStartedByDoctor = false
+                    doctorSingleTestMode = null
+                    navController.navigate(Routes.DETECTION_WELCOME) {
+                        popUpTo(Routes.HOME) { inclusive = false }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.PROFILE_MANAGEMENT) {
+            ProfileManagementScreen(
+                onBack = { navController.popBackStack() },
+                onDeleted = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.DIAGNOSTIC_ARCHIVE) {
+            val dataStore = remember { AdheraDataStore(context) }
+            DiagnosticArchiveScreen(
+                dataStore = dataStore,
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -393,6 +475,7 @@ fun AdheraNavGraph(
 
         // ── To-Do ─────────────────────────────────────────────────────────────
         composable(Routes.TODO) {
+            val todoNavController = rememberNavController()                    // ← nested controller
             val taskDatabase   = remember { TodoDatabase.getDatabase(context) }
             val taskRepository = remember { TaskRepositoryImpl(taskDatabase.taskDao()) }
             val taskUseCases   = remember {
@@ -406,8 +489,9 @@ fun AdheraNavGraph(
             }
             val taskViewModel: TaskViewModel = viewModel(factory = TaskViewModelFactory(taskUseCases))
             TaskNavGraph(
-                taskViewModel = taskViewModel,
-                onBackToHome  = { navController.popBackStack() },
+                navController = todoNavController,                             // ← nested controller
+                viewModel     = taskViewModel,
+                onBackToHome  = { navController.popBackStack() }              // ← root controller للرجوع للـ Home
             )
         }
 

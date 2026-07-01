@@ -112,6 +112,7 @@ fun HomeHubScreen(
     onNavigateToEbbAndFlow: () -> Unit = {},
     onNavigateToMemoryMatrix: () -> Unit = {},
     onNavigateToColorMatch: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
 ) {
     var selectedTab by remember { mutableStateOf(HomeTab.HOME) }
 
@@ -139,6 +140,7 @@ fun HomeHubScreen(
                     onNavigateToHabits = onNavigateToHabits,
                     onNavigateToChatbot = onNavigateToChatbot,
                     onNavigateToGames = { selectedTab = HomeTab.GAMES },
+                    onNavigateToSettings = onNavigateToSettings,
                 )
             }
             AnimatedVisibility(
@@ -257,6 +259,7 @@ private fun HomeTab(
     onNavigateToHabits: () -> Unit,
     onNavigateToChatbot: () -> Unit,
     onNavigateToGames: () -> Unit,
+    onNavigateToSettings: () -> Unit,
 ) {
     val features = listOf(
         FeatureCard(
@@ -297,7 +300,7 @@ private fun HomeTab(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 0.dp),
     ) {
-        item { HomeHeader() }
+        item { HomeHeader(onNavigateToSettings = onNavigateToSettings) }
         item { Spacer(Modifier.height(24.dp)) }
         item {
             Text(
@@ -334,7 +337,7 @@ private fun HomeTab(
 }
 
 @Composable
-private fun HomeHeader() {
+private fun HomeHeader(onNavigateToSettings: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -354,7 +357,7 @@ private fun HomeHeader() {
                     letterSpacing = (-0.5).sp,
                 ),
             )
-            IconButton(onClick = {}) {
+            IconButton(onClick = onNavigateToSettings) {
                 Icon(Icons.Default.Settings, contentDescription = "Settings", tint = HomeColors.NavyDark)
             }
         }

@@ -10,18 +10,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.collections.orEmpty
 
 class TaskViewModel(
-    private val taskUseCases: com.gpproject.adhera.treatment.todo_list.usecase.TaskUseCases,
-    private val taskManagerRepository: com.gpproject.adhera.treatment.todo_list.data.TaskManagerRepository = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.data.TaskManagerRepositoryImpl()
+    private val taskUseCases: TaskUseCases,
+    private val taskManagerRepository: TaskManagerRepository = TaskManagerRepositoryImpl()
 ) : ViewModel() {
 
-    private val _tasksState = MutableStateFlow<List<com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity>>(emptyList())
-    val tasksState: StateFlow<List<com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity>> = _tasksState.asStateFlow()
+    private val _tasksState = MutableStateFlow<List<TaskEntity>>(emptyList())
+    val tasksState: StateFlow<List<TaskEntity>> = _tasksState.asStateFlow()
 
-    private val _currentTaskState = MutableStateFlow<com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity?>(null)
-    val currentTaskState: StateFlow<com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity?> = _currentTaskState.asStateFlow()
+    private val _currentTaskState = MutableStateFlow<TaskEntity?>(null)
+    val currentTaskState: StateFlow<TaskEntity?> = _currentTaskState.asStateFlow()
 
     private val _isGeneratingMilestones = MutableStateFlow(false)
     val isGeneratingMilestones: StateFlow<Boolean> = _isGeneratingMilestones.asStateFlow()
@@ -47,14 +46,14 @@ class TaskViewModel(
         }
     }
 
-    fun upsertTask(task: com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity, onComplete: () -> Unit = {}) {
+    fun upsertTask(task: TaskEntity, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             taskUseCases.upsertTask(task)
             onComplete()
         }
     }
 
-    fun deleteTask(task: com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity, onComplete: () -> Unit = {}) {
+    fun deleteTask(task: TaskEntity, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             taskUseCases.deleteTask(task)
             onComplete()
@@ -67,7 +66,7 @@ class TaskViewModel(
         }
     }
 
-    fun toggleTaskCompletion(task: com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity) {
+    fun toggleTaskCompletion(task: TaskEntity) {
         viewModelScope.launch {
             taskUseCases.upsertTask(task.copy(isCompleted = !task.isCompleted))
         }

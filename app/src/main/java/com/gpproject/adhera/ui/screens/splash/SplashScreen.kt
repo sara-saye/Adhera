@@ -38,38 +38,34 @@ fun AdheraAnimatedSplash(onAnimationFinished: () -> Unit) {
             )
         }
 
-        // 2. Typewriter Effect لكلمة "Adhera"
         appName.forEach { char ->
             animatedText += char
-            delay(150)        // ← تقدري تغيري السرعة هنا (أقل = أسرع)
+            delay(150)
         }
 
-        // 3. Fade-in للوصف بعد ما الاسم يخلص
+
         delay(300)
         descriptionAlpha.animateTo(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 800)
         )
 
-        // 4. انتظر شوية عشان اليوزر يشوف الأنيميشن كويس
+
         delay(1400)
 
-        // 5. خلص الأنيميشن وروح للشاشة اللي بعدها
         onAnimationFinished()
     }
 
-    // التصميم
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppBackground),        // غيرتها من Color.White إلى AppBackground عشان تكون متسقة مع باقي التطبيق
+            .background(AppBackground),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(32.dp)
         ) {
-            // اسم التطبيق المتحرك
             Text(
                 text = animatedText,
                 fontSize = 56.sp,
@@ -85,7 +81,6 @@ fun AdheraAnimatedSplash(onAnimationFinished: () -> Unit) {
                     .padding(bottom = 32.dp)
             )
 
-            // الوصف
             Text(
                 text = "Your journey to focus.",
                 fontSize = 18.sp,

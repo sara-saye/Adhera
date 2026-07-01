@@ -1,7 +1,9 @@
 package com.gpproject.adhera.auth
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
 class FirebaseRepository(
@@ -143,6 +145,102 @@ class FirebaseRepository(
             .get()
             .await()
             .getString("role")
+    }
+
+    suspend fun getCurrentUserProfile(): Result<UserProfile> {
+
+        return try {
+
+            val uid = getCurrentUserId()
+
+            if (uid.isBlank()) {
+                Result.failure(IllegalStateException("No authenticated user"))
+            } else {
+                val profile = firestore.collection("users")
+                    .document(uid)
+                    .get()
+                    .await()
+                    .toObject(UserProfile::class.java)
+                    ?: UserProfile(uid = uid, email = auth.currentUser?.email.orEmpty())
+
+                Result.success(profile)
+            }
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateAccountProfile(
+        nickname: String,
+        email: String,
+        password: String?
+    ): Result<Unit> {
+
+        return try {
+
+            val user = auth.currentUser
+                ?: return Result.failure(IllegalStateException("No authenticated user"))
+
+            val uid = user.uid
+            val trimmedNickname = nickname.trim()
+            val trimmedEmail = email.trim()
+
+            if (trimmedEmail.isNotBlank() && trimmedEmail != user.email) {
+                user.updateEmail(trimmedEmail).await()
+            }
+
+            if (!password.isNullOrBlank()) {
+                user.updatePassword(password).await()
+            }
+
+            user.updateProfile(
+                UserProfileChangeRequest.Builder()
+                    .setDisplayName(trimmedNickname)
+                    .build()
+            ).await()
+
+            val updates = mutableMapOf<String, Any>(
+                "nickname" to trimmedNickname,
+                "email" to trimmedEmail
+            )
+
+            firestore.collection("users")
+                .document(uid)
+                .set(updates, SetOptions.merge())
+                .await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteCurrentAccount(): Result<Unit> {
+
+        return try {
+
+            val user = auth.currentUser
+                ?: return Result.failure(IllegalStateException("No authenticated user"))
+
+            val uid = user.uid
+
+            firestore.collection("users")
+                .document(uid)
+                .delete()
+                .await()
+
+            user.delete().await()
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+
+            Result.failure(e)
+        }
     }
 
     fun logout() {

@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gpproject.adhera.doctor.data.DoctorViewModel
+import com.gpproject.adhera.ui.components.adheraScreenPadding
 
 @Composable
 fun SavePatientResultScreen(
@@ -29,6 +30,7 @@ fun SavePatientResultScreen(
     Column(
         modifier=Modifier
             .fillMaxSize()
+            .adheraScreenPadding()
             .padding(20.dp)
     ){
 

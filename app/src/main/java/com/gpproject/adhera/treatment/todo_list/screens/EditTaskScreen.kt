@@ -1,271 +1,458 @@
 package com.gpproject.adhera.treatment.todo_list.screens
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.gpproject.adhera.ui.theme.NavyPrimary
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.gpproject.adhera.ui.theme.*
 
 @Composable
 fun EditTaskScreen(
-    taskId: String = "1",
-    taskTitleDefault: String = "Hello Deep Work",
-    hasSubTasks: Boolean = true,
+    taskId: String,
     onBack: () -> Unit,
-    viewModel: com.gpproject.adhera.treatment.todo_list.screens.TaskViewModel
+    onSettings: () -> Unit = {},
+    viewModel: TaskViewModel
 ) {
+    // نحمل التاسك من الـ ViewModel
     LaunchedEffect(taskId) {
         viewModel.loadTaskById(taskId)
     }
 
-    val currentTask by viewModel.currentTaskState.collectAsState()
-    val isGenerating by viewModel.isGeneratingMilestones.collectAsState()
-    val aiError by viewModel.aiErrorState.collectAsState()
+    val currentTask by viewModel.currentTaskState.collectAsStateWithLifecycle()
 
-    var title by remember { mutableStateOf(taskTitleDefault) }
-    var description by remember { mutableStateOf("") }
-    var priority by remember { mutableStateOf("Medium") }
+    // نملأ الـ state بالبيانات الحقيقية لما التاسك يتحمل
+    var title           by remember { mutableStateOf("") }
+    var description     by remember { mutableStateOf("") }
+    var startTime       by remember { mutableStateOf("09:00 AM") }
+    var endDate         by remember { mutableStateOf("") }
+    var dailyFocus      by remember { mutableStateOf("02:30 HRS") }
     var reminderEnabled by remember { mutableStateOf(true) }
-    val milestones = remember { mutableStateListOf<String>() }
+    var milestones      by remember { mutableStateOf<List<String>>(emptyList()) }
+    var newMilestone    by remember { mutableStateOf("") }
+    var showAddField    by remember { mutableStateOf(false) }
 
+    // لما التاسك يتحمل نملأ الحقول
     LaunchedEffect(currentTask) {
         currentTask?.let { task ->
-            title = task.title
-            description = task.description
-            priority = task.priority
+            title           = task.title
+            description     = task.description
+            startTime       = task.startTime
+            endDate         = task.endDate ?: ""
+            dailyFocus      = task.dailyFocus
             reminderEnabled = task.reminderEnabled
-            milestones.clear()
-            milestones.addAll(task.milestones)
+            milestones      = task.milestones
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose { viewModel.clearCurrentTask() }
-    }
-
-    val task = currentTask
-    if (task == null) {
-        androidx.compose.foundation.layout.Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+    // لو التاسك لسه بتتحمل
+    if (currentTask == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = NavyPrimary)
         }
         return
     }
 
-    Scaffold(containerColor = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoBackground) { padding ->
+    val task = currentTask!!
+    val hasSubTasks = milestones.isNotEmpty()
+
+    Scaffold(
+        topBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.Default.ArrowBackIosNew,
+                        contentDescription = null,
+                        tint = NavyPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Text(
+                    text = "Edit Task",
+                    fontSize = 20.sp,
+                    color = NavyPrimary,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                IconButton(onClick = onSettings) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = NavyPrimary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+        },
+        containerColor = Color(0xFFF8F9FB)
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+
+            // ─── كارت العنوان ─────────────────────────────────────────────────
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                color = Color.White
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back", tint = NavyPrimary)
+                Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        modifier = Modifier.size(50.dp),
+                        color = Color(0xFFEFF3F8),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = NavyPrimary,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = title,
+                            fontWeight = FontWeight.Bold,
+                            color = NavyPrimary,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = task.durationType,
+                            color = Color.Gray,
+                            fontSize = 13.sp
+                        )
+                    }
                 }
-                Text("Edit task", color = NavyPrimary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
             }
 
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Task title") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Text("Priority", color = NavyPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("High", "Medium", "Low").forEach { option ->
-                    FilterChip(
-                        selected = priority == option,
-                        onClick = { priority = option },
-                        label = { Text(option) }
+            // ─── وقت وتاريخ ──────────────────────────────────────────────────
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                EditInfoField(
+                    label = "START TIME",
+                    value = startTime,
+                    icon = Icons.Default.AccessTime,
+                    modifier = Modifier.weight(1f)
+                )
+                if (task.endDate != null) {
+                    EditInfoField(
+                        label = "END DATE",
+                        value = endDate.ifEmpty { task.startDate },
+                        icon = Icons.Default.CalendarToday,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFE6EAF0))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Schedule", color = NavyPrimary, fontWeight = FontWeight.Bold)
-                    Text("${task.startDate} at ${task.startTime}", color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted, fontSize = 13.sp)
-                    Text("Daily focus: ${task.dailyFocus}", color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted, fontSize = 13.sp)
-                }
-            }
+            EditInfoField(
+                label = "FOCUS DURATION",
+                value = dailyFocus,
+                icon = Icons.Default.Timer,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFE6EAF0))
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // ─── الوصف ───────────────────────────────────────────────────────
+            Column {
+                Text(
+                    "DESCRIPTION",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White
                 ) {
-                    Icon(Icons.Outlined.NotificationsActive, contentDescription = null, tint = NavyPrimary)
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Reminder", color = NavyPrimary, fontWeight = FontWeight.Bold)
-                        Text("5 minutes before start time", color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted, fontSize = 12.sp)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = description.ifEmpty { "No description added." },
+                            fontSize = 14.sp,
+                            color = NavyPrimary.copy(alpha = 0.8f),
+                            lineHeight = 22.sp
+                        )
+                        if (hasSubTasks) {
+                            Spacer(Modifier.height(12.dp))
+                            // ─── زرار Re-generate مربوط بالـ AI ───
+                            val isGenerating by viewModel.isGeneratingMilestones.collectAsStateWithLifecycle()
+                            Button(
+                                onClick = {
+                                    viewModel.generateAiMilestones(
+                                        title = title,
+                                        description = description
+                                    ) { newSteps ->
+                                        milestones = newSteps
+                                    }
+                                },
+                                enabled = !isGenerating,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFF1F4F9)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                if (isGenerating) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = NavyPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.AutoAwesome,
+                                        null,
+                                        tint = NavyPrimary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "Re-generate with AI",
+                                        color = NavyPrimary,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                     }
-                    Switch(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
                 }
             }
 
-            if (hasSubTasks) {
+            // ─── Reminder ────────────────────────────────────────────────────
+            Column {
+                Text("REMINDER", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.NotificationsNone, null, tint = NavyPrimary)
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            "5-minute before alert",
+                            modifier = Modifier.weight(1f),
+                            fontSize = 14.sp,
+                            color = NavyPrimary
+                        )
+                        Switch(
+                            checked = reminderEnabled,
+                            onCheckedChange = { reminderEnabled = it }
+                        )
+                    }
+                }
+            }
+
+            // ─── Sub-tasks / Milestones ───────────────────────────────────────
+            Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Steps", color = NavyPrimary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                    Row {
-                        TextButton(onClick = { milestones.add("") }) {
-                            Text("Add", color = NavyPrimary, fontWeight = FontWeight.Bold)
-                        }
-                        TextButton(
-                            onClick = {
-                                viewModel.generateAiMilestones(title, description) { steps ->
-                                    milestones.clear()
-                                    milestones.addAll(steps)
-                                }
-                            },
-                            enabled = !isGenerating && title.isNotBlank()
-                        ) {
-                            if (isGenerating) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = NavyPrimary)
-                            } else {
-                                Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("AI", color = NavyPrimary, fontWeight = FontWeight.Bold)
-                            }
-                        }
+                    Text(
+                        "SUB-TASKS",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                    TextButton(onClick = { showAddField = !showAddField }) {
+                        Icon(
+                            Icons.Default.AddCircleOutline,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = NavyPrimary
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Add New Step",
+                            color = NavyPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
-                aiError?.let { Text(it, color = Color(0xFFC62828), fontSize = 12.sp) }
-
-                milestones.forEachIndexed { index, step ->
-                    OutlinedTextField(
-                        value = step,
-                        onValueChange = { milestones[index] = it },
-                        label = { Text("Step ${index + 1}") },
-                        trailingIcon = {
-                            IconButton(onClick = { milestones.removeAt(index) }) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove step")
-                            }
-                        },
+                // حقل إضافة milestone جديد
+                if (showAddField) {
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = newMilestone,
+                            onValueChange = { newMilestone = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("New step...") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(onClick = {
+                            if (newMilestone.isNotBlank()) {
+                                milestones = milestones + newMilestone.trim()
+                                newMilestone = ""
+                                showAddField = false
+                            }
+                        }) {
+                            Icon(Icons.Default.Check, null, tint = NavyPrimary)
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                // قائمة الـ milestones
+                milestones.forEachIndexed { index, step ->
+                    EditSubTaskItem(
+                        number = index + 1,
+                        text = step,
+                        onDelete = {
+                            milestones = milestones.toMutableList().also { it.removeAt(index) }
+                        }
                     )
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                // لو مافيش milestones
+                if (milestones.isEmpty()) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFF7F9FC)
+                    ) {
+                        Text(
+                            text = "No sub-tasks yet. Tap 'Add New Step' or use AI to generate.",
+                            modifier = Modifier.padding(16.dp),
+                            color = Color.Gray,
+                            fontSize = 13.sp
+                        )
+                    }
                 }
             }
 
+            // ─── Save Button ──────────────────────────────────────────────────
             Button(
                 onClick = {
-                    val updatedTask = task.copy(
-                        title = title.trim(),
-                        description = description.trim(),
-                        priority = priority,
-                        reminderEnabled = reminderEnabled,
-                        milestones = milestones.map { it.trim() }.filter { it.isNotBlank() }
-                    )
-                    viewModel.upsertTask(updatedTask) { onBack() }
+                    viewModel.upsertTask(
+                        task.copy(
+                            title           = title,
+                            description     = description,
+                            startTime       = startTime,
+                            endDate         = endDate.ifEmpty { task.endDate },
+                            dailyFocus      = dailyFocus,
+                            reminderEnabled = reminderEnabled,
+                            milestones      = milestones
+                        )
+                    ) { onBack() }
                 },
-                enabled = title.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp),
+                    .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(28.dp)
             ) {
-                Text("Save changes", fontWeight = FontWeight.Bold)
+                Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
 
+            // ─── Delete Button ────────────────────────────────────────────────
             TextButton(
-                onClick = { viewModel.deleteTask(task) { onBack() } },
+                onClick = {
+                    viewModel.deleteTask(task) { onBack() }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = Color(0xFFC62828))
-                Spacer(Modifier.width(6.dp))
-                Text("Delete task", color = Color(0xFFC62828), fontWeight = FontWeight.Bold)
+                Text("Delete Task", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
             }
 
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+// ─── Helper Composables ───────────────────────────────────────────────────────
+
+@Composable
+fun EditInfoField(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
+                Icon(icon, null, modifier = Modifier.size(20.dp), tint = Color.LightGray)
+            }
+        }
+    }
+}
+
+@Composable
+fun EditSubTaskItem(number: Int, text: String, onDelete: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(NavyPrimary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("$number", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(text, modifier = Modifier.weight(1f), fontSize = 14.sp, color = NavyPrimary)
+            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Default.DeleteOutline,
+                    null,
+                    tint = Color(0xFFE57373),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

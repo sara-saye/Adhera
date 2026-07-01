@@ -32,6 +32,7 @@ fun AdditionalInfoScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
+            .adheraScreenPadding()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState()),
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gpproject.adhera.ui.components.adheraScreenPadding
 import com.gpproject.adhera.ui.theme.*
 
 
@@ -28,6 +29,7 @@ fun ScanQuestionScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
+            .adheraScreenPadding()
             .padding(24.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {

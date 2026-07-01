@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gpproject.adhera.ui.components.PrimaryButton
+import com.gpproject.adhera.ui.components.adheraScreenPadding
 import com.gpproject.adhera.ui.theme.*
 
 @Composable
@@ -29,6 +30,7 @@ fun AccountCreatedScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
+            .adheraScreenPadding()
             .padding(horizontal = 24.dp),
 
         horizontalAlignment = Alignment.CenterHorizontally

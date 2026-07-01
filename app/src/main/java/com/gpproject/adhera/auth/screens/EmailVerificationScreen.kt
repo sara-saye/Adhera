@@ -18,6 +18,7 @@ import com.gpproject.adhera.ui.components.PrimaryButton
 import com.gpproject.adhera.ui.components.SecondaryButton
 import com.gpproject.adhera.ui.theme.*
 import com.gpproject.adhera.auth.AuthViewModel
+import com.gpproject.adhera.ui.components.adheraScreenPadding
 
 @Composable
 fun EmailVerificationScreen(
@@ -36,6 +37,7 @@ fun EmailVerificationScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
+            .adheraScreenPadding()
             .padding(horizontal = 24.dp),
 
         horizontalAlignment = Alignment.CenterHorizontally

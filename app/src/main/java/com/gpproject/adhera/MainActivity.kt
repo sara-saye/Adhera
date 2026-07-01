@@ -6,8 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.navigation.compose.rememberNavController
 import com.gpproject.adhera.navigation.AdheraNavGraph
-import com.gpproject.adhera.navigation.TaskNavGraph
-import com.gpproject.adhera.treatment.todo_list.screens.TaskViewModel
 import com.gpproject.adhera.ui.theme.AdheraTheme
 
 class MainActivity : ComponentActivity() {

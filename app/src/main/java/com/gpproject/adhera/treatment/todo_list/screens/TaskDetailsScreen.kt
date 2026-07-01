@@ -1,182 +1,214 @@
-package com.gpproject.adhera.treatment.todo_list.screens
+package com.gpproject.adhera.ui.screens.treatment.todo_list
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.gpproject.adhera.ui.theme.NavyPrimary
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.gpproject.adhera.treatment.todo_list.screens.TaskViewModel
+import com.gpproject.adhera.ui.theme.*
 
 @Composable
 fun TaskDetailsScreen(
     taskId: String,
-    viewModel: com.gpproject.adhera.treatment.todo_list.screens.TaskViewModel,
+    viewModel: TaskViewModel,
     onBack: () -> Unit,
     onEdit: (String) -> Unit
 ) {
+    // تحميل بيانات التاسك الحقيقية
     LaunchedEffect(taskId) {
         viewModel.loadTaskById(taskId)
     }
 
-    val currentTask by viewModel.currentTaskState.collectAsState()
+    val currentTask by viewModel.currentTaskState.collectAsStateWithLifecycle()
 
-    DisposableEffect(Unit) {
-        onDispose { viewModel.clearCurrentTask() }
-    }
-
-    val task = currentTask
-    if (task == null) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(_root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoBackground),
-            contentAlignment = Alignment.Center
-        ) {
+    // Loading state
+    if (currentTask == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = NavyPrimary)
         }
         return
     }
 
-    Scaffold(containerColor = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoBackground) { padding ->
+    val task = currentTask!!
+    val isRangeTask = task.endDate != null
+    val dateValue = if (isRangeTask) "${task.startDate} - ${task.endDate}" else task.startDate
+
+    Scaffold(
+        topBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.Default.ArrowBackIosNew,
+                        contentDescription = null,
+                        tint = NavyPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Text(
+                    text = task.title,
+                    fontSize = 20.sp,
+                    color = NavyPrimary,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                IconButton(onClick = { onEdit(taskId) }) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = NavyPrimary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+        },
+        containerColor = Color.White
+    ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(bottom = 28.dp)
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            contentPadding = PaddingValues(bottom = 40.dp)
         ) {
+            // Stats Grid بالبيانات الحقيقية
             item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back", tint = NavyPrimary)
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(task.title, color = NavyPrimary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
-                        Text(task.durationType, color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted, fontSize = 13.sp)
-                    }
-                    TextButton(onClick = { onEdit(task.id) }) {
-                        Text("Edit", color = NavyPrimary, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.dp, Color(0xFFE6EAF0))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.DetailRow(
-                            "Start",
-                            "${task.startDate} at ${task.startTime}"
-                        )
-                        if (!task.endDate.isNullOrBlank()) _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.DetailRow(
-                            "End",
-                            task.endDate
-                        )
-                        _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.DetailRow(
-                            "Daily focus",
-                            task.dailyFocus
-                        )
-                        _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.DetailRow(
-                            "Priority",
-                            task.priority
-                        )
-                    }
-                }
-            }
-
-            item {
-                _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.SectionTitle("Description")
-                Text(
-                    text = task.description.ifBlank { "No description added." },
-                    color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
+                TaskStatsGrid(
+                    dateValue = dateValue,
+                    priority = task.priority,
+                    dailyFocus = task.dailyFocus,
+                    isRange = isRangeTask
                 )
             }
 
-            if (task.milestones.isNotEmpty()) {
+            // Progress bar للـ range tasks
+            if (isRangeTask) {
                 item {
-                    _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.SectionTitle(
-                        "Steps"
-                    )
+                    TaskDeadlineProgress(progress = 0.65f, daysLeft = 3)
                 }
-                itemsIndexed(task.milestones) { index, step ->
-                    _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.StepRow(
-                        number = index + 1,
-                        text = step
+            }
+
+            // Description
+            if (task.description.isNotBlank()) {
+                item {
+                    TaskSectionHeading("Description")
+                    Text(
+                        text = task.description,
+                        color = NavyPrimary.copy(alpha = 0.7f),
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
             }
 
-            if (task.reminderEnabled) {
+            // Milestones / Sub-tasks
+            if (task.milestones.isNotEmpty()) {
                 item {
-                    Card(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, Color(0xFFE6EAF0))
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        TaskSectionHeading("Plan Breakdown")
+                        Surface(
+                            color = Color(0xFFFDE7E7),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = NavyPrimary)
-                            Spacer(Modifier.width(12.dp))
-                            Column {
-                                Text("Reminder enabled", color = NavyPrimary, fontWeight = FontWeight.Bold)
-                                Text("5 minutes before ${task.startTime}", color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted, fontSize = 12.sp)
-                            }
+                            Text(
+                                "${task.milestones.size} Tasks",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                color = Color.Red,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
+                }
+
+                itemsIndexed(task.milestones) { index, milestone ->
+                    MilestoneItem(index = index, text = milestone, total = task.milestones.size)
+                }
+            }
+
+            // Reminder
+            if (task.reminderEnabled) {
+                item {
+                    TaskReminderCard("5 mins before focus hours")
+                }
+            }
+        }
+    }
+}
+
+// ─── Helper Composables ───────────────────────────────────────────────────────
+
+@Composable
+fun TaskStatsGrid(
+    dateValue: String,
+    priority: String,
+    dailyFocus: String,
+    isRange: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = Color(0xFFF7F9FC)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                TaskStatItem(
+                    label = if (isRange) "DATE RANGE" else "START DATE",
+                    value = dateValue,
+                    icon = Icons.Default.CalendarToday,
+                    modifier = Modifier.weight(1f)
+                )
+                TaskStatItem(
+                    label = "PRIORITY",
+                    value = priority,
+                    icon = Icons.Default.Speed,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth()) {
+                TaskStatItem(
+                    label = "DAILY FOCUS",
+                    value = dailyFocus,
+                    icon = Icons.Default.AccessTime,
+                    modifier = Modifier.weight(1f)
+                )
+                if (isRange) {
+                    TaskStatItem(
+                        label = "COMPLETION",
+                        value = "65%",
+                        icon = Icons.Default.DonutLarge,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -184,44 +216,184 @@ fun TaskDetailsScreen(
 }
 
 @Composable
-private fun DetailRow(label: String, value: String?) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted, fontSize = 13.sp)
-        Text(value.orEmpty(), color = NavyPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+fun TaskStatItem(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            label,
+            fontSize = 11.sp,
+            color = NavyPrimary.copy(alpha = 0.5f),
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = NavyPrimary
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                value,
+                fontSize = 16.sp,
+                color = NavyPrimary,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
     }
 }
 
 @Composable
-private fun StepRow(number: Int, text: String) {
+fun MilestoneItem(index: Int, text: String, total: Int) {
+    // أول 2 = completed، اللي بعده = in progress، الباقي = upcoming
+    val status = when {
+        index < 2              -> MilestoneStatus.COMPLETED
+        index == 2             -> MilestoneStatus.IN_PROGRESS
+        else                   -> MilestoneStatus.UPCOMING
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE6EAF0))
+        shape = RoundedCornerShape(16.dp),
+        color = if (status == MilestoneStatus.IN_PROGRESS) Color.White else Color(0xFFF7F9FC),
+        border = if (status == MilestoneStatus.IN_PROGRESS)
+            androidx.compose.foundation.BorderStroke(2.dp, NavyPrimary)
+        else null
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(30.dp)
-                    .background(NavyPrimary, CircleShape),
+                    .size(32.dp)
+                    .background(
+                        if (status == MilestoneStatus.COMPLETED) NavyPrimary else Color.White,
+                        CircleShape
+                    )
+                    .border(
+                        1.5.dp,
+                        if (status == MilestoneStatus.UPCOMING) Color.LightGray else NavyPrimary,
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(number.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                when (status) {
+                    MilestoneStatus.COMPLETED   ->
+                        Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    MilestoneStatus.IN_PROGRESS ->
+                        Box(Modifier.size(10.dp).background(NavyPrimary, CircleShape))
+                    MilestoneStatus.UPCOMING    -> {}
+                }
             }
-            Spacer(Modifier.width(12.dp))
-            Text(text, color = NavyPrimary, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text,
+                    fontWeight = FontWeight.Bold,
+                    color = if (status == MilestoneStatus.UPCOMING) Color.Gray else NavyPrimary,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = when (status) {
+                        MilestoneStatus.COMPLETED   -> "Completed"
+                        MilestoneStatus.IN_PROGRESS -> "In Progress"
+                        MilestoneStatus.UPCOMING    -> "Upcoming"
+                    },
+                    fontSize = 12.sp,
+                    color = NavyPrimary.copy(alpha = 0.5f)
+                )
+            }
+            if (status == MilestoneStatus.IN_PROGRESS) {
+                Icon(
+                    Icons.Default.PlayCircleFilled,
+                    null,
+                    tint = NavyPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(text, color = NavyPrimary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+fun TaskReminderCard(time: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFFF7F9FC)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(Color.White, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Outlined.Notifications,
+                    null,
+                    tint = NavyPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(
+                    "Reminder: Enabled",
+                    fontWeight = FontWeight.ExtraBold,
+                    color = NavyPrimary,
+                    fontSize = 16.sp
+                )
+                Text(text = time, fontSize = 13.sp, color = Color.Gray)
+            }
+        }
+    }
 }
+
+@Composable
+fun TaskDeadlineProgress(progress: Float, daysLeft: Int) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Progress to deadline",
+                fontSize = 13.sp,
+                color = NavyPrimary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "$daysLeft Days left",
+                fontSize = 13.sp,
+                color = NavyPrimary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp),
+            color = NavyPrimary,
+            trackColor = Color(0xFFF0F0F0),
+            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+fun TaskSectionHeading(text: String) {
+    Text(text, fontSize = 22.sp, color = NavyPrimary, fontWeight = FontWeight.Black)
+}
+
+enum class MilestoneStatus { COMPLETED, IN_PROGRESS, UPCOMING }

@@ -1,58 +1,34 @@
 package com.gpproject.adhera.treatment.todo_list.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity
-import com.gpproject.adhera.ui.theme.NavyPrimary
+import com.gpproject.adhera.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodoListScreen(
     onNavigateToCreate: () -> Unit,
@@ -60,12 +36,12 @@ fun TodoListScreen(
     onNavigateToDetails: (String) -> Unit,
     onBack: () -> Unit,
     initialTab: Int = 0,
-    viewModel: com.gpproject.adhera.treatment.todo_list.screens.TaskViewModel = viewModel()
+    viewModel: TaskViewModel
 ) {
     var selectedTab by remember { mutableIntStateOf(initialTab) }
-    val allTasks by viewModel.tasksState.collectAsState()
-    val tabs = listOf("Today", "Week", "Month", "All")
+    val allTasks by viewModel.tasksState.collectAsStateWithLifecycle()
 
+    // فلترة التاسكات حسب الـ Tab
     val filteredTasks = remember(allTasks, selectedTab) {
         allTasks.filter { task ->
             when (selectedTab) {
@@ -78,180 +54,397 @@ fun TodoListScreen(
     }
 
     Scaffold(
-        containerColor = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoBackground,
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color.White,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToCreate,
                 containerColor = NavyPrimary,
                 contentColor = Color.White,
-                shape = CircleShape
+                shape = CircleShape,
+                modifier = Modifier.padding(bottom = 10.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Create task")
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(28.dp))
             }
         }
     ) { padding ->
         Column(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(padding)
+                .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
+            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp, bottom = 14.dp),
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back", tint = NavyPrimary)
+                    Icon(
+                        Icons.Default.ArrowBackIosNew,
+                        contentDescription = null,
+                        tint = NavyPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Tasks", color = NavyPrimary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
-                    Text("${allTasks.count { !it.isCompleted }} open tasks", color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted, fontSize = 13.sp)
+                Text(
+                    text = "To Do",
+                    fontSize = 22.sp,
+                    color = NavyPrimary,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                IconButton(onClick = { }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = null, tint = NavyPrimary)
                 }
-                TextButton(onClick = { viewModel.clearCompletedTasks() }) {
-                    Text("Clear done", color = NavyPrimary, fontWeight = FontWeight.SemiBold)
+            }
+
+            Text(
+                text = "Let's get things done\ntoday",
+                fontSize = 28.sp,
+                lineHeight = 34.sp,
+                color = NavyPrimary,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(vertical = 12.dp)
+            )
+
+            // Tabs
+            val tabs = listOf("Today", "This week", "This month")
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = NavyPrimary,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = NavyPrimary
+                    )
+                },
+                divider = {}
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = {
+                            Text(
+                                text = title,
+                                fontSize = 14.sp,
+                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selectedTab == index) NavyPrimary else Color.Gray
+                            )
+                        }
+                    )
                 }
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                tabs.forEachIndexed { index, label ->
-                    FilterChip(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        label = { Text(label) }
+                Text(
+                    text = "Your Tasks",
+                    fontSize = 16.sp,
+                    color = NavyPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                TextButton(onClick = { viewModel.clearCompletedTasks() }) {
+                    Text(
+                        text = "Clear Completed",
+                        color = NavyPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 88.dp)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 if (filteredTasks.isEmpty()) {
                     item {
-                        _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.EmptyTasksCard(
-                            onNavigateToCreate
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Default.CheckCircleOutline,
+                                    contentDescription = null,
+                                    tint = Color.LightGray,
+                                    modifier = Modifier.size(60.dp)
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    "No tasks yet!\nTap + to add one.",
+                                    color = Color.Gray,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 22.sp
+                                )
+                            }
+                        }
                     }
                 } else {
-                    items(filteredTasks, key = { it.id }) { task ->
-                        _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TaskItem(
+                    items(
+                        items = filteredTasks,
+                        key = { it.id }
+                    ) { task ->
+                        SwipeableTaskItem(
                             task = task,
-                            onToggleClick = { viewModel.toggleTaskCompletion(task) },
-                            onItemClick = { onNavigateToDetails(task.id) },
-                            onEditClick = { onNavigateToEdit(task.id) },
-                            onDeleteClick = { viewModel.deleteTask(task) }
+                            selectedTab = selectedTab,
+                            onEdit = { onNavigateToEdit(task.id) },
+                            onDelete = { viewModel.deleteTask(task) },
+                            onToggleComplete = { viewModel.toggleTaskCompletion(task) },
+                            onTap = { onNavigateToDetails(task.id) }
                         )
                     }
+                }
+
+                item {
+                    FocusTipBox()
                 }
             }
         }
     }
 }
 
+// ─── Swipeable Task Item ──────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskItem(
-    task: com.gpproject.adhera.treatment.todo_list.tododb.TaskEntity,
-    onToggleClick: () -> Unit,
-    onItemClick: () -> Unit,
-    onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+fun SwipeableTaskItem(
+    task: TaskEntity,
+    selectedTab: Int,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onToggleComplete: () -> Unit,
+    onTap: () -> Unit
+) {
+    // نحتفظ بـ state للـ dismiss
+    var isDismissed by remember { mutableStateOf(false) }
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            when (dismissValue) {
+                // سحب لليمين → حذف
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    isDismissed = true
+                    onDelete()
+                    true
+                }
+                // سحب لليسار → تعديل
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onEdit()
+                    false // مش بنخبي العنصر، بس بنفتح شاشة التعديل
+                }
+                else -> false
+            }
+        },
+        positionalThreshold = { it * 0.4f } // لازم يسحب 40% عشان يكمل
+    )
+
+    if (!isDismissed) {
+        SwipeToDismissBox(
+            state = dismissState,
+            backgroundContent = {
+                SwipeBackground(dismissState)
+            },
+            content = {
+                TaskCard(
+                    task = task,
+                    selectedTab = selectedTab,
+                    onToggleComplete = onToggleComplete,
+                    onTap = onTap
+                )
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
+    val direction = dismissState.dismissDirection
+
+    // لو سحب يمين = Delete (أحمر) | لو سحب شمال = Edit (أزرق)
+    val isDelete = direction == SwipeToDismissBoxValue.StartToEnd
+    val isEdit   = direction == SwipeToDismissBoxValue.EndToStart
+
+    val color by animateColorAsState(
+        targetValue = when {
+            isDelete -> Color(0xFFE53935)
+            isEdit   -> NavyPrimary
+            else     -> Color.Transparent
+        },
+        label = "swipe_bg_color"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.Settled) 0.75f else 1f,
+        label = "swipe_icon_scale"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color, RoundedCornerShape(18.dp))
+            .padding(horizontal = 20.dp),
+        contentAlignment = if (isEdit) Alignment.CenterEnd else Alignment.CenterStart
+    ) {
+        if (isDelete) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Delete",
+                tint = Color.White,
+                modifier = Modifier.scale(scale).size(26.dp)
+            )
+        } else if (isEdit) {
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = "Edit",
+                tint = Color.White,
+                modifier = Modifier.scale(scale).size(26.dp)
+            )
+        }
+    }
+}
+
+// ─── Task Card (المحتوى الفعلي للعنصر) ───────────────────────────────────────
+
+@Composable
+fun TaskCard(
+    task: TaskEntity,
+    selectedTab: Int,
+    onToggleComplete: () -> Unit,
+    onTap: () -> Unit
 ) {
     val priorityColor = when (task.priority) {
-        "High" -> Color(0xFFC2410C)
-        "Medium" -> Color(0xFFB7791F)
-        else -> Color(0xFF2F855A)
+        "High"   -> Color(0xFFE57373)
+        "Medium" -> Color(0xFFFFB74D)
+        else     -> Color(0xFF81C784)
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onItemClick() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE6EAF0)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    // تحديد النص اللي يظهر تحت العنوان حسب الـ Tab
+    val subtitle = when (selectedTab) {
+        0    -> task.startTime
+        else -> if (task.endDate != null) "${task.startDate} - ${task.endDate}" else task.startDate
+    }
+
+    Surface(
+        onClick = onTap,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFFF7F9FC),
+        border = BorderStroke(1.dp, Color(0xFFE0E0E0))
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .background(if (task.isCompleted) NavyPrimary else Color.White, CircleShape)
-                    .clickable { onToggleClick() },
-                contentAlignment = Alignment.Center
+            // Checkbox + Title
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
             ) {
-                if (task.isCompleted) {
-                    Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(18.dp))
-                } else {
-                    Box(modifier = Modifier.size(28.dp).background(Color.Transparent, CircleShape))
-                }
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = task.title,
-                    color = NavyPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
-                )
-                Text(
-                    text = "${task.durationType} • ${task.startTime} • ${task.dailyFocus}",
-                    color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted,
-                    fontSize = 12.sp
-                )
+                // Checkbox دائري
                 Surface(
-                    color = priorityColor.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(999.dp)
+                    onClick = onToggleComplete,
+                    modifier = Modifier.size(24.dp),
+                    shape = CircleShape,
+                    color = if (task.isCompleted) NavyPrimary else Color.White,
+                    border = BorderStroke(1.5.dp, NavyPrimary)
                 ) {
+                    if (task.isCompleted) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .size(16.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
                     Text(
-                        task.priority,
-                        color = priorityColor,
-                        fontSize = 11.sp,
+                        text = task.title,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        color = NavyPrimary,
+                        fontSize = 16.sp,
+                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
                     )
+                    Text(text = subtitle, fontSize = 12.sp, color = Color.Gray)
                 }
             }
-            IconButton(onClick = onEditClick) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = NavyPrimary)
-            }
-            IconButton(onClick = onDeleteClick) {
-                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = Color(0xFFC62828))
+
+            // Priority Badge
+            Surface(
+                color = priorityColor.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = task.priority,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    color = priorityColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
         }
     }
 }
+
+// ─── Focus Tip ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun EmptyTasksCard(onCreate: () -> Unit) {
+fun FocusTipBox() {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp),
+        colors = CardDefaults.cardColors(containerColor = NavyPrimary),
+        shape = RoundedCornerShape(24.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("No tasks here", color = NavyPrimary, fontWeight = FontWeight.Bold)
-            Text("Create one task and keep the list light.", color = _root_ide_package_.com.gpproject.adhera.treatment.todo_list.screens.TodoMuted, fontSize = 13.sp)
-            TextButton(onClick = onCreate) {
-                Text("Create task", color = NavyPrimary, fontWeight = FontWeight.Bold)
-            }
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Focus Tip",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+            Text(
+                text = "Eliminate visual clutter.",
+                color = Color.Magenta,
+                fontWeight = FontWeight.Black,
+                fontSize = 15.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Focusing on one task at a time increases completion rate by 40%.",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.8f)
+            )
         }
     }
 }
 
-internal val TodoBackground = Color(0xFFF8FAFB)
-internal val TodoMuted = Color(0xFF687782)
+@Preview(showBackground = true)
+@Composable
+fun TodoTodayPreview() {
+    AdheraTheme {
+        // Preview بدون ViewModel حقيقي - للـ UI فقط
+    }
+}

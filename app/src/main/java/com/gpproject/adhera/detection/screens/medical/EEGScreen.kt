@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gpproject.adhera.ui.components.UploadBox
+import com.gpproject.adhera.ui.components.adheraScreenPadding
 import com.gpproject.adhera.ui.theme.*
 
 @Composable
@@ -47,6 +48,7 @@ fun EegScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
+            .adheraScreenPadding()
             .padding(24.dp)
     ) {
         Column(
